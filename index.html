@@ -89,10 +89,11 @@
     <div>
       <div class="pill"><span class="icon">♡</span> Baby 及待产准备</div>
       <h1>孕妇备产清单</h1>
-      <p class="lead">把妈妈和宝宝的待产物品整理成可勾选、可搜索、可增删改的网页清单。记录会自动保存在当前浏览器里，再次打开仍能延续进度。</p>
+      <p class="lead">把妈妈和宝宝的待产物品整理成可勾选、可搜索、可增删改的网页清单。记录会同步保存到云端，其他人打开同一个链接也能看到最新状态。</p>
       <div class="actions">
         <button id="addTopBtn" class="btn btn-primary"><span class="icon">＋</span> 新增物品</button>
         <button id="resetBtn" class="btn btn-soft"><span class="icon">↻</span> 恢复初始清单</button>
+        <span id="syncStatus" class="pill">云端同步中…</span>
       </div>
     </div>
     <aside class="progress-card">
@@ -127,7 +128,8 @@
   </div>
 
   <script>
-    const STORAGE_KEY = 'baby-bag-checklist-v2';
+    const API_URL = 'https://vcwwtrss.cn-east-fn.bytedance.net';
+    const STORAGE_KEY = 'baby-bag-checklist-cloud-cache-v1';
     const initialItems = [
       ['童泰实体店购','59码连体衣','厚×1；夹棉×1；四季×1',''],['童泰实体店购','52码连体衣','夹棉×1；四季×2',''],['童泰实体店购','52码半背衣','×2',''],['童泰实体店购','包单','×2 + 1厚',''],['童泰实体店购','铺床小褥子 + 毛毯','',''],['童泰实体店购','浴巾','×1',''],['童泰实体店购','袜子 + 胎帽','袜子×4；胎帽×2',''],['童泰实体店购','600g包被','',''],['童泰实体店购','口水巾圈','×2',''],
       ['妈妈部分','定温烧水壶','',''],['妈妈部分','食品级包装袋','','上面写物品名字'],['妈妈部分','吸奶器','',''],['妈妈部分','储奶袋','',''],['妈妈部分','防溢乳贴','',''],['妈妈部分','收腹带','',''],['妈妈部分','私处冲洗器','',''],['妈妈部分','产褥垫','',''],['妈妈部分','会阴冷敷贴','',''],['妈妈部分','安睡裤','',''],['妈妈部分','吸管水杯','',''],['妈妈部分','月子服','',''],['妈妈部分','月子鞋','',''],['妈妈部分','哺乳内衣','',''],['妈妈部分','待产包','',''],
@@ -137,11 +139,85 @@
       ['宝宝部分·消耗品','一次性隔尿垫','M码60-70片',''],['宝宝部分·消耗品','棉柔巾','','频率高，多囤'],['宝宝部分·消耗品','云柔巾','',''],['宝宝部分·消耗品','纸尿裤','7-8斤：S码200片；5-6斤：NB100 + S100',''],['宝宝部分·消耗品','新生儿小剪刀','',''],
       ['大件','消毒柜','',''],['大件','看护器','',''],['大件','婴儿洗衣机','',''],['大件','婴儿车','',''],['大件','婴儿床','',''],['大件','安全座椅','','']
     ].map((item, index) => ({ id: crypto.randomUUID ? crypto.randomUUID() : `item-${Date.now()}-${index}`, category:item[0], name:item[1], qty:item[2], note:item[3], done:index < 12 || ['会阴冷敷贴','吸管水杯','硅胶小勺'].includes(item[1]), createdAt:Date.now()+index }));
-    let items = loadItems();
+    let items = [];
+    let lastCloudUpdatedAt = 0;
+    let saveTimer = null;
     const $ = s => document.querySelector(s);
     const listRoot = $('#listRoot'), emptyState = $('#emptyState'), searchInput = $('#searchInput'), categoryFilter = $('#categoryFilter'), statusFilter = $('#statusFilter'), modal = $('#itemModal'), itemForm = $('#itemForm');
     function loadItems(){ try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || initialItems; } catch { return initialItems; } }
-    function saveItems(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(items)); }
+    function setSyncStatus(text){ const node = $('#syncStatus'); if (node) node.textContent = text; }
+    async function loadFromCloud(){
+      setSyncStatus('云端同步中…');
+      try {
+        const response = await fetch(`${API_URL}/api/v1/checklist`, { cache: 'no-store' });
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const data = await response.json();
+        items = Array.isArray(data.items) ? data.items : initialItems;
+        lastCloudUpdatedAt = data.updatedAt || Date.now();
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
+        setSyncStatus('已云端同步');
+      } catch (error) {
+        console.warn('读取云端清单失败，暂用本地缓存', error);
+        items = loadItems();
+        setSyncStatus('云端连接失败，暂存本机');
+      }
+      renderList();
+    }
+    async function refreshFromCloud(){
+      try {
+        const response = await fetch(`${API_URL}/api/v1/checklist`, { cache: 'no-store' });
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const data = await response.json();
+        if (data.updatedAt && data.updatedAt !== lastCloudUpdatedAt) {
+          items = Array.isArray(data.items) ? data.items : items;
+          lastCloudUpdatedAt = data.updatedAt;
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
+          setSyncStatus('已同步最新');
+          renderList();
+        }
+      } catch (error) {
+        console.warn('刷新云端清单失败', error);
+      }
+    }
+    function saveItems(){
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
+      setSyncStatus('正在保存…');
+      clearTimeout(saveTimer);
+      saveTimer = setTimeout(async () => {
+        try {
+          const response = await fetch(`${API_URL}/api/v1/checklist`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ items })
+          });
+          if (!response.ok) throw new Error(`HTTP ${response.status}`);
+          const data = await response.json();
+          lastCloudUpdatedAt = data.updatedAt || Date.now();
+          setSyncStatus('已云端同步');
+        } catch (error) {
+          console.warn('保存云端清单失败', error);
+          setSyncStatus('保存失败，稍后重试');
+        }
+      }, 250);
+    }
+    async function resetCloud(){
+      setSyncStatus('正在恢复…');
+      try {
+        const response = await fetch(`${API_URL}/api/v1/checklist/reset`, { method: 'POST' });
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const data = await response.json();
+        items = Array.isArray(data.items) ? data.items : initialItems;
+        lastCloudUpdatedAt = data.updatedAt || Date.now();
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
+        setSyncStatus('已云端同步');
+        renderList();
+      } catch (error) {
+        console.warn('恢复云端清单失败', error);
+        items = initialItems;
+        saveItems();
+        renderList();
+      }
+    }
     function categories(){ return [...new Set(items.map(i => i.category))]; }
     function escapeHtml(str=''){ return String(str).replace(/[&<>'"]/g, tag => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[tag])); }
     function openModal(item=null, defaultCategory=''){ document.body.style.overflow='hidden'; modal.classList.add('show'); $('#modalTitle').textContent=item?'编辑物品':'新增物品'; $('#itemId').value=item?.id||''; $('#itemName').value=item?.name||''; $('#itemCategory').value=item?.category||defaultCategory||categories()[0]||'待产清单'; $('#itemQty').value=item?.qty||''; $('#itemNote').value=item?.note||''; setTimeout(()=>$('#itemName').focus(),60); }
@@ -154,8 +230,9 @@
     $('#categoryStats').addEventListener('click', e => { const btn=e.target.closest('[data-filter-category]'); if(!btn) return; categoryFilter.value=btn.dataset.filterCategory; renderList(); window.scrollTo({top:250, behavior:'smooth'}); });
     listRoot.addEventListener('click', e => { const t=e.target.closest('[data-action]'); if(!t) return; const item=items.find(i=>i.id===t.dataset.id); if(!item) return; if(t.dataset.action==='toggle') item.done=t.checked; if(t.dataset.action==='edit') return openModal(item); if(t.dataset.action==='delete' && confirm(`确定删除“${item.name}”吗？`)) items=items.filter(i=>i.id!==item.id); saveItems(); renderList(); });
     itemForm.addEventListener('submit', e => { e.preventDefault(); const id=$('#itemId').value; const payload={name:$('#itemName').value.trim(), category:$('#itemCategory').value.trim(), qty:$('#itemQty').value.trim(), note:$('#itemNote').value.trim()}; if(!payload.name||!payload.category) return; if(id) items=items.map(i=>i.id===id?{...i,...payload}:i); else items.push({id:crypto.randomUUID?crypto.randomUUID():`item-${Date.now()}`,...payload,done:false,createdAt:Date.now()}); saveItems(); closeModal(); renderList(); });
-    $('#resetBtn').addEventListener('click',()=>{ if(confirm('恢复初始清单会覆盖当前新增和修改，确定继续吗？')){ items=initialItems; saveItems(); renderList(); } });
-    renderList(); saveItems();
+    $('#resetBtn').addEventListener('click',()=>{ if(confirm('恢复初始清单会覆盖所有人看到的云端记录，确定继续吗？')) resetCloud(); });
+    loadFromCloud();
+    setInterval(refreshFromCloud, 15000);
   </script>
 </body>
 </html>
