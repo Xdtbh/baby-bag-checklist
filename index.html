@@ -10,15 +10,15 @@
     body { margin:0; min-height:100vh; color:var(--ink); font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans SC","PingFang SC","Microsoft YaHei",sans-serif; background: radial-gradient(circle at 15% 14%, rgba(252,186,211,.55), transparent 27%), radial-gradient(circle at 86% 4%, rgba(183,209,255,.42), transparent 28%), radial-gradient(circle at 48% 98%, rgba(255,228,181,.48), transparent 30%), linear-gradient(135deg,#fff7fa,#fff1f4 48%,#fff8ec); }
     button, input, select, textarea { font:inherit; }
     button { cursor:pointer; border:0; }
-    .wrap { width:min(1180px, calc(100% - 32px)); margin:0 auto; }
-    .hero { margin:32px auto 24px; padding:34px; border-radius:34px; background:linear-gradient(135deg,rgba(255,255,255,.9),rgba(255,244,248,.8)); border:1px solid rgba(255,255,255,.86); box-shadow:var(--shadow); backdrop-filter: blur(22px); display:grid; grid-template-columns:1.18fr .82fr; gap:32px; align-items:center; position:relative; overflow:hidden; }
+    .wrap { width:min(520px, calc(100% - 20px)); margin:0 auto; }
+    .hero { margin:14px auto 14px; padding:22px; border-radius:28px; background:linear-gradient(135deg,rgba(255,255,255,.94),rgba(255,244,248,.86)); border:1px solid rgba(255,255,255,.9); box-shadow:var(--shadow); backdrop-filter: blur(22px); display:grid; grid-template-columns:1fr; gap:18px; align-items:center; position:relative; overflow:hidden; }
     .hero:after { content:""; position:absolute; right:-70px; top:-80px; width:240px; height:240px; border-radius:50%; background:rgba(232,93,139,.13); }
     .hero > * { position:relative; z-index:1; }
     .pill { display:inline-flex; align-items:center; gap:8px; padding:9px 15px; border-radius:999px; background:rgba(255,255,255,.76); color:var(--rose-dark); font-weight:800; border:1px solid #ffe0e8; }
-    .sync-mini { display:inline-flex; align-items:center; gap:6px; padding:8px 10px; border-radius:999px; color:#667085; background:rgba(255,255,255,.58); font-size:12px; font-weight:700; }
+    .sync-mini { display:inline-flex; align-items:center; align-self:center; gap:6px; min-height:38px; padding:8px 10px; border-radius:999px; color:#667085; background:rgba(255,255,255,.58); font-size:12px; font-weight:700; }
     .sync-mini:before { content:""; width:7px; height:7px; border-radius:50%; background:#22c55e; box-shadow:0 0 0 4px rgba(34,197,94,.12); }
-    h1 { margin:14px 0 0; font-size:clamp(38px, 5vw, 62px); line-height:1.04; letter-spacing:-.045em; }
-    .lead { margin:18px 0 0; max-width:720px; color:#5d6679; line-height:1.9; font-size:18px; }
+    h1 { margin:12px 0 0; font-size:clamp(30px, 9vw, 42px); line-height:1.08; letter-spacing:-.04em; }
+    .lead { margin:14px 0 0; max-width:720px; color:#5d6679; line-height:1.75; font-size:15px; }
     .hero-note { display:flex; flex-wrap:wrap; gap:10px; margin-top:18px; color:#7a5061; font-size:13px; }
     .hero-note span { padding:7px 10px; border-radius:999px; background:rgba(255,255,255,.62); border:1px solid rgba(255,224,232,.9); }
     .actions { display:flex; flex-wrap:wrap; gap:12px; margin-top:24px; align-items:center; }
@@ -38,21 +38,21 @@
     .mini { padding:12px; text-align:center; background:rgba(255,255,255,.78); border-radius:18px; }
     .mini span { display:block; color:var(--muted); font-size:12px; }
     .mini strong { display:block; margin-top:2px; font-size:22px; }
-    .toolbar { position:sticky; top:12px; z-index:10; margin-bottom:22px; padding:16px; border-radius:26px; background:rgba(255,255,255,.76); border:1px solid rgba(255,255,255,.86); box-shadow:0 18px 50px rgba(170,93,121,.12); backdrop-filter:blur(18px); display:grid; grid-template-columns:1fr 210px 170px; gap:12px; }
+    .toolbar { position:sticky; top:10px; z-index:10; margin-bottom:14px; padding:12px; border-radius:24px; background:rgba(255,255,255,.82); border:1px solid rgba(255,255,255,.9); box-shadow:0 14px 38px rgba(170,93,121,.12); backdrop-filter:blur(18px); display:grid; grid-template-columns:1fr; gap:10px; }
     .searchbox { position:relative; }
     .searchbox span { position:absolute; left:15px; top:50%; transform:translateY(-50%); color:#98a2b3; }
     input, select, textarea { width:100%; border:1px solid #ffe0e8; outline:0; background:rgba(255,255,255,.9); border-radius:18px; padding:13px 15px; color:#243047; }
     .searchbox input { padding-left:42px; }
     input:focus, select:focus, textarea:focus { border-color:#f5a5bd; box-shadow:0 0 0 4px rgba(232,93,139,.12); }
-    .category-stats { display:grid; grid-template-columns:repeat(4,1fr); gap:14px; margin-bottom:22px; }
+    .category-stats { display:grid; grid-template-columns:repeat(2,1fr); gap:10px; margin-bottom:14px; }
     .stat-card { text-align:left; padding:16px; border-radius:24px; background:rgba(255,255,255,.78); border:1px solid rgba(255,255,255,.8); box-shadow:0 12px 34px rgba(170,93,121,.08); transition:.2s ease; }
     .stat-card:hover { transform:translateY(-2px); box-shadow:0 18px 45px rgba(170,93,121,.14); }
     .stat-top { display:flex; justify-content:space-between; gap:10px; align-items:center; font-weight:900; }
     .stat-top b { color:var(--rose-dark); }
     .stat-card p { margin:6px 0 0; color:var(--muted); font-size:14px; }
-    .list { display:grid; gap:22px; padding-bottom:50px; }
-    .section { overflow:hidden; border-radius:30px; background:rgba(255,255,255,.82); border:1px solid rgba(255,255,255,.85); box-shadow:0 18px 50px rgba(170,93,121,.1); }
-    .section-head { display:flex; justify-content:space-between; align-items:center; gap:14px; padding:20px 22px; border-bottom:1px solid #ffe5ec; background:rgba(255,255,255,.58); }
+    .list { display:grid; gap:14px; padding-bottom:40px; }
+    .section { overflow:hidden; border-radius:26px; background:rgba(255,255,255,.86); border:1px solid rgba(255,255,255,.9); box-shadow:0 12px 36px rgba(170,93,121,.09); }
+    .section-head { display:flex; justify-content:space-between; align-items:center; gap:12px; padding:16px; border-bottom:1px solid #ffe5ec; background:rgba(255,255,255,.62); }
     .section-title { display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
     .section h2 { margin:0; font-size:22px; letter-spacing:-.02em; }
     .section-sub { margin:4px 0 0; color:var(--muted); font-size:14px; }
@@ -62,26 +62,25 @@
     .items { display:grid; }
     .swipe-row { position:relative; overflow:hidden; border-top:1px solid #fff1f5; background:rgba(255,255,255,.35); touch-action:pan-y; }
     .swipe-row:first-child { border-top:0; }
-    .swipe-actions { position:absolute; inset:0 0 0 auto; width:156px; display:flex; align-items:stretch; justify-content:flex-end; background:linear-gradient(90deg,rgba(255,255,255,0),rgba(255,241,245,.98)); opacity:0; pointer-events:none; transition:opacity .18s ease; }
+    .swipe-actions { position:absolute; inset:0 0 0 auto; width:132px; display:flex; align-items:stretch; justify-content:flex-end; background:linear-gradient(90deg,rgba(255,255,255,0),rgba(255,241,245,.98)); opacity:0; pointer-events:none; transition:opacity .18s ease; }
     .swipe-row.open .swipe-actions { opacity:1; pointer-events:auto; }
-    .swipe-actions button { width:78px; font-weight:900; color:#fff; }
+    .swipe-actions button { width:66px; font-weight:900; color:#fff; }
     .swipe-actions .edit-btn { background:#64748b; }
     .swipe-actions .delete-btn { background:#e11d48; }
-    .item { position:relative; z-index:1; display:flex; align-items:center; justify-content:space-between; gap:16px; padding:16px 22px; background:#fff; transition:transform .22s ease, background .22s ease; will-change:transform; }
-    .swipe-row.open .item { transform:translateX(-156px); }
-    .swipe-row.open .hint { opacity:0; }
-    .item label { min-width:0; flex:1; display:flex; align-items:flex-start; gap:14px; cursor:pointer; }
+    .item { position:relative; z-index:1; display:flex; align-items:center; justify-content:space-between; gap:10px; padding:14px 14px; background:#fff; transition:transform .22s ease, background .22s ease; will-change:transform; }
+    .swipe-row.open .item { transform:translateX(-132px); }
+    .item label { min-width:0; flex:1; display:flex; align-items:center; gap:10px; cursor:pointer; }
     .item input[type="checkbox"] { width:20px; height:20px; flex:0 0 auto; margin:2px 0 0; accent-color:var(--rose); box-shadow:none; }
     .item-title { display:block; font-weight:900; line-height:1.35; word-break:break-word; }
     .item-meta { display:block; margin-top:5px; color:var(--muted); font-size:14px; line-height:1.55; }
     .item-meta strong { color:#344054; }
     .swipe-row.done .item { background:linear-gradient(90deg, rgba(236,253,245,.96), rgba(248,255,252,.93)); }
     .swipe-row.done .item-title { color:var(--green); text-decoration:none; }
-    .item-content { min-width:0; flex:1; display:flex; flex-direction:column; gap:10px; }
-    .item-main { display:flex; align-items:flex-start; gap:12px; }
-    .thumb-row { display:flex; gap:10px; overflow-x:auto; padding:2px 0 4px 32px; scrollbar-width:thin; }
-    .thumb { width:70px; height:70px; flex:0 0 auto; border-radius:18px; object-fit:cover; border:1px solid #ffe0e8; background:#fff7fa; box-shadow:0 8px 18px rgba(170,93,121,.12); }
-    .hint { color:#c4a1ad; font-size:12px; white-space:nowrap; transition:.2s ease; }
+    .item-content { min-width:0; flex:1; display:grid; grid-template-columns:minmax(0,1fr) auto; align-items:center; gap:10px; }
+    .item-main { min-width:0; }
+    .thumb-row { display:flex; gap:6px; justify-self:end; max-width:122px; overflow-x:auto; padding:2px 0; scrollbar-width:none; }
+    .thumb-row::-webkit-scrollbar { display:none; }
+    .thumb { width:42px; height:42px; flex:0 0 auto; border-radius:14px; object-fit:cover; border:1px solid #ffe0e8; background:#fff7fa; box-shadow:0 6px 14px rgba(170,93,121,.12); }
     .image-upload { display:grid; gap:10px; padding:14px; border:1px dashed #f3b8c9; border-radius:20px; background:#fff8fb; }
     .preview-strip { display:flex; gap:10px; overflow-x:auto; padding-bottom:4px; }
     .image-preview { width:88px; height:88px; flex:0 0 auto; border-radius:22px; object-fit:cover; border:1px solid #ffe0e8; }
@@ -104,17 +103,17 @@
     .cancel { background:#f2f4f7; color:#475467; }
     .save { background:var(--rose); color:#fff; }
     .icon { display:inline-flex; align-items:center; justify-content:center; line-height:1; }
-    @media (max-width: 900px) { .hero { grid-template-columns:1fr; padding:24px; } .toolbar { grid-template-columns:1fr; } .category-stats { grid-template-columns:repeat(2,1fr); } }
-    @media (max-width: 640px) { .wrap { width:min(100% - 22px,1180px); } .hero { margin-top:18px; border-radius:26px; } .mini-stats, .two-col { grid-template-columns:1fr; } .category-stats { grid-template-columns:1fr; } .section-head { align-items:stretch; flex-direction:column; } .section-actions { justify-content:flex-start; } .add-category, .rename-category { width:100%; } .hint { display:none; } }
+    @media (max-width: 900px) { .hero { grid-template-columns:1fr; padding:22px; } }
+    @media (max-width: 640px) { .wrap { width:min(100% - 20px,520px); } .hero { margin-top:12px; border-radius:26px; } .mini-stats, .two-col { grid-template-columns:1fr; } .section-head { align-items:stretch; flex-direction:column; } .section-actions { justify-content:flex-start; } .add-category, .rename-category { width:100%; } }
   </style>
 </head>
 <body>
   <header class="wrap hero">
     <div>
       <div class="pill"><span class="icon">♡</span> 给宝宝和妈妈的安心准备</div>
-      <h1>待产准备，一件件放心完成</h1>
-      <p class="lead">把要买、要带、要确认的物品收进同一份云端清单。家人打开同一个链接就能看到最新进度，左滑每一项即可管理，重要物品还可以配图记录。</p>
-      <div class="hero-note"><span>云端共享</span><span>自定义分类</span><span>多图记录</span><span>左滑编辑/删除</span></div>
+      <h1>待产清单，安心准备</h1>
+      <p class="lead">把要买、要带、要确认的物品收进同一份云端清单。家人打开同一个链接就能看到最新进度，手机上随手勾选，重要物品还可以多图记录。</p>
+      <div class="hero-note"><span>云端共享</span><span>自定义分类</span><span>多图记录</span><span>手机优先</span></div>
       <div class="actions">
         <button id="addTopBtn" class="btn btn-primary"><span class="icon">＋</span> 新增物品</button>
         <button id="resetBtn" class="btn btn-soft"><span class="icon">↻</span> 恢复初始清单</button>
@@ -217,14 +216,14 @@
       renderControls(); renderStats(); const visible=filteredItems(), grouped=visible.reduce((a,i)=>{(a[i.category] ||= []).push(i); return a;},{}); listRoot.innerHTML=''; emptyState.classList.toggle('show', visible.length===0);
       Object.entries(grouped).forEach(([category, group])=>{
         const section=document.createElement('article'); section.className='section';
-        section.innerHTML=`<div class="section-head"><div><div class="section-title"><h2>${escapeHtml(category)}</h2></div><p class="section-sub">${group.filter(i=>i.done).length}/${group.length} 已完成 · 左滑物品可编辑/删除</p></div><div class="section-actions"><button class="rename-category" data-category="${escapeHtml(category)}">编辑分类名</button><button class="add-category">＋ 添加到此类</button></div></div><div class="items"></div>`;
+        section.innerHTML=`<div class="section-head"><div><div class="section-title"><h2>${escapeHtml(category)}</h2></div><p class="section-sub">${group.filter(i=>i.done).length}/${group.length} 已完成</p></div><div class="section-actions"><button class="rename-category" data-category="${escapeHtml(category)}">编辑分类名</button><button class="add-category">＋ 添加到此类</button></div></div><div class="items"></div>`;
         section.querySelector('.add-category').addEventListener('click',()=>openModal(null,category)); section.querySelector('.rename-category').addEventListener('click',()=>renameCategory(category));
         const box=section.querySelector('.items');
         group.sort((a,b)=>a.createdAt-b.createdAt).forEach(item=>{
           const row=document.createElement('div'); row.className=`swipe-row ${item.done?'done':''}`; row.dataset.id = item.id;
           const imageList = normalizeImages(item);
           const imageHtml = imageList.length ? `<div class="thumb-row">${imageList.map((src, index) => `<img class="thumb" src="${src}" alt="${escapeHtml(item.name)}图片${index + 1}">`).join('')}</div>` : '';
-          row.innerHTML=`<div class="swipe-actions"><button class="edit-btn" data-action="edit" data-id="${item.id}">编辑</button><button class="delete-btn" data-action="delete" data-id="${item.id}">删除</button></div><div class="item"><label><input type="checkbox" ${item.done?'checked':''} data-action="toggle" data-id="${item.id}"><span class="item-content"><span class="item-main"><span><span class="item-title">${escapeHtml(item.name)}</span><span class="item-meta">${item.qty?`<strong>${escapeHtml(item.qty)}</strong>`:''}${item.qty&&item.note?' · ':''}${escapeHtml(item.note||'')}</span></span></span>${imageHtml}</span></label><span class="hint">左滑管理</span></div>`;
+          row.innerHTML=`<div class="swipe-actions"><button class="edit-btn" data-action="edit" data-id="${item.id}">编辑</button><button class="delete-btn" data-action="delete" data-id="${item.id}">删除</button></div><div class="item"><label><input type="checkbox" ${item.done?'checked':''} data-action="toggle" data-id="${item.id}"><span class="item-content"><span class="item-main"><span><span class="item-title">${escapeHtml(item.name)}</span><span class="item-meta">${item.qty?`<strong>${escapeHtml(item.qty)}</strong>`:''}${item.qty&&item.note?' · ':''}${escapeHtml(item.note||'')}</span></span></span>${imageHtml}</span></label></div>`;
           box.appendChild(row);
         });
         listRoot.appendChild(section);
