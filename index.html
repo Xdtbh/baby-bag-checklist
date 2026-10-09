@@ -159,9 +159,13 @@
     </form>
   </div>
 
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="./config.js"></script>
   <script>
-    const API_URL = 'https://vcwwtrss.cn-east-fn.bytedance.net';
-    const STORAGE_KEY = 'baby-bag-checklist-cloud-cache-v1';
+    const SUPABASE_URL = window.SUPABASE_URL || 'https://ynxmaiwuepenquyopcql.supabase.co';
+    const SUPABASE_ANON_KEY = window.SUPABASE_ANON_KEY || '';
+    const supabaseClient = window.supabase && SUPABASE_ANON_KEY ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
+    const STORAGE_KEY = 'baby-bag-checklist-supabase-cache-v1';
     const initialItems = [
       ['童泰实体店购','59码连体衣','厚×1；夹棉×1；四季×1',''],['童泰实体店购','52码连体衣','夹棉×1；四季×2',''],['童泰实体店购','52码半背衣','×2',''],['童泰实体店购','包单','×2 + 1厚',''],['童泰实体店购','铺床小褥子 + 毛毯','',''],['童泰实体店购','浴巾','×1',''],['童泰实体店购','袜子 + 胎帽','袜子×4；胎帽×2',''],['童泰实体店购','600g包被','',''],['童泰实体店购','口水巾圈','×2',''],
       ['妈妈部分','定温烧水壶','',''],['妈妈部分','食品级包装袋','','上面写物品名字'],['妈妈部分','吸奶器','',''],['妈妈部分','储奶袋','',''],['妈妈部分','防溢乳贴','',''],['妈妈部分','收腹带','',''],['妈妈部分','私处冲洗器','',''],['妈妈部分','产褥垫','',''],['妈妈部分','会阴冷敷贴','',''],['妈妈部分','安睡裤','',''],['妈妈部分','吸管水杯','',''],['妈妈部分','月子服','',''],['妈妈部分','月子鞋','',''],['妈妈部分','哺乳内衣','',''],['妈妈部分','待产包','',''],
@@ -181,24 +185,48 @@
     const listRoot = $('#listRoot'), emptyState = $('#emptyState'), searchInput = $('#searchInput'), categoryFilter = $('#categoryFilter'), statusFilter = $('#statusFilter'), modal = $('#itemModal'), itemForm = $('#itemForm'), imageInput = $('#itemImage'), imagePreview = $('#imagePreview'), removeImageBtn = $('#removeImageBtn'), categorySelect = $('#categorySelect');
     function loadItems(){ try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || initialItems; } catch { return initialItems; } }
     function setSyncStatus(text){ const node = $('#syncStatus'); if (node) node.textContent = text; }
+    function toDbItem(item){ return { id:item.id, category:item.category, name:item.name, qty:item.qty || '', note:item.note || '', done:Boolean(item.done), images:Array.isArray(item.images) ? item.images : (item.image ? [item.image] : []), created_at_ms:item.createdAt || Date.now(), updated_at:new Date().toISOString() }; }
+    function fromDbItem(row){ return { id:row.id, category:row.category, name:row.name, qty:row.qty || '', note:row.note || '', done:Boolean(row.done), images:Array.isArray(row.images) ? row.images : [], createdAt:row.created_at_ms || Date.now() }; }
+    async function fetchSupabaseItems(){
+      if (!supabaseClient) throw new Error('Supabase 未配置 anon key');
+      const { data, error } = await supabaseClient.from('checklist_items').select('*').order('created_at_ms', { ascending:true });
+      if (error) throw error;
+      return data || [];
+    }
+    async function replaceSupabaseItems(nextItems){
+      if (!supabaseClient) throw new Error('Supabase 未配置 anon key');
+      const { error: deleteError } = await supabaseClient.from('checklist_items').delete().neq('id', '__never__');
+      if (deleteError) throw deleteError;
+      if (nextItems.length) {
+        const { error: insertError } = await supabaseClient.from('checklist_items').insert(nextItems.map(toDbItem));
+        if (insertError) throw insertError;
+      }
+    }
     async function loadFromCloud(){
       setSyncStatus('同步中');
-      try { const response = await fetch(`${API_URL}/api/v1/checklist`, { cache: 'no-store' }); if (!response.ok) throw new Error(`HTTP ${response.status}`); const data = await response.json(); items = Array.isArray(data.items) ? data.items : initialItems; lastCloudUpdatedAt = data.updatedAt || Date.now(); localStorage.setItem(STORAGE_KEY, JSON.stringify(items)); setSyncStatus('已同步'); }
-      catch (error) { console.warn('读取云端清单失败，暂用本地缓存', error); items = loadItems(); setSyncStatus('离线缓存'); }
+      try {
+        const rows = await fetchSupabaseItems();
+        if (!rows.length) { items = initialItems; await replaceSupabaseItems(items); }
+        else { items = rows.map(fromDbItem); }
+        lastCloudUpdatedAt = Date.now(); localStorage.setItem(STORAGE_KEY, JSON.stringify(items)); setSyncStatus('已同步');
+      } catch (error) { console.warn('读取 Supabase 清单失败，暂用本地缓存', error); items = loadItems(); setSyncStatus('离线缓存'); }
       renderList();
     }
     async function refreshFromCloud(){
-      try { const response = await fetch(`${API_URL}/api/v1/checklist`, { cache: 'no-store' }); if (!response.ok) throw new Error(`HTTP ${response.status}`); const data = await response.json(); if (data.updatedAt && data.updatedAt !== lastCloudUpdatedAt) { items = Array.isArray(data.items) ? data.items : items; lastCloudUpdatedAt = data.updatedAt; localStorage.setItem(STORAGE_KEY, JSON.stringify(items)); setSyncStatus('已更新'); renderList(); } }
-      catch (error) { console.warn('刷新云端清单失败', error); }
+      try {
+        const rows = await fetchSupabaseItems();
+        const nextItems = rows.map(fromDbItem); const nextSnapshot = JSON.stringify(nextItems);
+        if (nextSnapshot !== JSON.stringify(items)) { items = nextItems; localStorage.setItem(STORAGE_KEY, nextSnapshot); setSyncStatus('已更新'); renderList(); }
+      } catch (error) { console.warn('刷新 Supabase 清单失败', error); }
     }
     function saveItems(){
       localStorage.setItem(STORAGE_KEY, JSON.stringify(items)); setSyncStatus('保存中'); clearTimeout(saveTimer);
-      saveTimer = setTimeout(async () => { try { const response = await fetch(`${API_URL}/api/v1/checklist`, { method:'PUT', headers:{ 'Content-Type':'application/json' }, body:JSON.stringify({ items }) }); if (!response.ok) throw new Error(`HTTP ${response.status}`); const data = await response.json(); lastCloudUpdatedAt = data.updatedAt || Date.now(); setSyncStatus('已同步'); } catch (error) { console.warn('保存云端清单失败', error); setSyncStatus('保存失败'); } }, 250);
+      saveTimer = setTimeout(async () => { try { await replaceSupabaseItems(items); lastCloudUpdatedAt = Date.now(); setSyncStatus('已同步'); } catch (error) { console.warn('保存 Supabase 清单失败', error); setSyncStatus('保存失败'); } }, 250);
     }
     async function resetCloud(){
-      setSyncStatus('恢复中');
-      try { const response = await fetch(`${API_URL}/api/v1/checklist/reset`, { method:'POST' }); if (!response.ok) throw new Error(`HTTP ${response.status}`); const data = await response.json(); items = Array.isArray(data.items) ? data.items : initialItems; lastCloudUpdatedAt = data.updatedAt || Date.now(); localStorage.setItem(STORAGE_KEY, JSON.stringify(items)); setSyncStatus('已同步'); renderList(); }
-      catch (error) { console.warn('恢复云端清单失败', error); items = initialItems; saveItems(); renderList(); }
+      setSyncStatus('恢复中'); items = initialItems; localStorage.setItem(STORAGE_KEY, JSON.stringify(items)); renderList();
+      try { await replaceSupabaseItems(items); lastCloudUpdatedAt = Date.now(); setSyncStatus('已同步'); }
+      catch (error) { console.warn('恢复 Supabase 清单失败', error); setSyncStatus('保存失败'); }
     }
     function categories(){ return [...new Set(items.map(i => i.category).filter(Boolean))]; }
     function escapeHtml(str=''){ return String(str).replace(/[&<>'"]/g, tag => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[tag])); }
