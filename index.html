@@ -6,24 +6,30 @@
   <title>孕妇备产清单</title>
   <style>
     * { box-sizing: border-box; }
-    :root { --rose:#e85d8b; --rose-dark:#be2f62; --ink:#172033; --muted:#667085; --line:#f5d6df; --paper:rgba(255,255,255,.82); --shadow:0 24px 70px rgba(170,93,121,.16); }
+    :root { --rose:#e85d8b; --rose-dark:#be2f62; --ink:#172033; --muted:#667085; --paper:rgba(255,255,255,.82); --shadow:0 24px 70px rgba(170,93,121,.16); --green:#087f5b; }
     body { margin:0; min-height:100vh; color:var(--ink); font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans SC","PingFang SC","Microsoft YaHei",sans-serif; background: radial-gradient(circle at 15% 14%, rgba(252,186,211,.55), transparent 27%), radial-gradient(circle at 86% 4%, rgba(183,209,255,.42), transparent 28%), radial-gradient(circle at 48% 98%, rgba(255,228,181,.48), transparent 30%), linear-gradient(135deg,#fff7fa,#fff1f4 48%,#fff8ec); }
     button, input, select, textarea { font:inherit; }
     button { cursor:pointer; border:0; }
     .wrap { width:min(1180px, calc(100% - 32px)); margin:0 auto; }
-    .hero { margin:32px auto 24px; padding:32px; border-radius:32px; background:var(--paper); border:1px solid rgba(255,255,255,.84); box-shadow:var(--shadow); backdrop-filter: blur(22px); display:grid; grid-template-columns:1.2fr .8fr; gap:32px; align-items:center; }
-    .pill { display:inline-flex; align-items:center; gap:8px; padding:9px 15px; border-radius:999px; background:rgba(255,255,255,.76); color:var(--rose-dark); font-weight:700; border:1px solid #ffe0e8; }
-    h1 { margin:14px 0 0; font-size:clamp(36px, 5vw, 58px); line-height:1.06; letter-spacing:-.04em; }
+    .hero { margin:32px auto 24px; padding:34px; border-radius:34px; background:linear-gradient(135deg,rgba(255,255,255,.9),rgba(255,244,248,.8)); border:1px solid rgba(255,255,255,.86); box-shadow:var(--shadow); backdrop-filter: blur(22px); display:grid; grid-template-columns:1.18fr .82fr; gap:32px; align-items:center; position:relative; overflow:hidden; }
+    .hero:after { content:""; position:absolute; right:-70px; top:-80px; width:240px; height:240px; border-radius:50%; background:rgba(232,93,139,.13); }
+    .hero > * { position:relative; z-index:1; }
+    .pill { display:inline-flex; align-items:center; gap:8px; padding:9px 15px; border-radius:999px; background:rgba(255,255,255,.76); color:var(--rose-dark); font-weight:800; border:1px solid #ffe0e8; }
+    .sync-mini { display:inline-flex; align-items:center; gap:6px; padding:8px 10px; border-radius:999px; color:#667085; background:rgba(255,255,255,.58); font-size:12px; font-weight:700; }
+    .sync-mini:before { content:""; width:7px; height:7px; border-radius:50%; background:#22c55e; box-shadow:0 0 0 4px rgba(34,197,94,.12); }
+    h1 { margin:14px 0 0; font-size:clamp(38px, 5vw, 62px); line-height:1.04; letter-spacing:-.045em; }
     .lead { margin:18px 0 0; max-width:720px; color:#5d6679; line-height:1.9; font-size:18px; }
-    .actions { display:flex; flex-wrap:wrap; gap:12px; margin-top:24px; }
-    .btn { display:inline-flex; align-items:center; justify-content:center; gap:8px; border-radius:999px; padding:12px 20px; font-weight:800; transition:.2s ease; }
+    .hero-note { display:flex; flex-wrap:wrap; gap:10px; margin-top:18px; color:#7a5061; font-size:13px; }
+    .hero-note span { padding:7px 10px; border-radius:999px; background:rgba(255,255,255,.62); border:1px solid rgba(255,224,232,.9); }
+    .actions { display:flex; flex-wrap:wrap; gap:12px; margin-top:24px; align-items:center; }
+    .btn { display:inline-flex; align-items:center; justify-content:center; gap:8px; border-radius:999px; padding:12px 20px; font-weight:850; transition:.2s ease; }
     .btn:hover { transform:translateY(-1px); }
     .btn-primary { color:#fff; background:#111827; box-shadow:0 14px 30px rgba(232,93,139,.24); }
     .btn-primary:hover { background:var(--rose-dark); }
     .btn-soft { color:var(--rose-dark); background:rgba(255,255,255,.86); border:1px solid #ffd9e4; }
-    .progress-card { border-radius:28px; padding:22px; background:linear-gradient(135deg,rgba(255,255,255,.95),rgba(255,228,236,.82)); border:1px solid rgba(255,255,255,.92); }
+    .progress-card { border-radius:28px; padding:22px; background:linear-gradient(135deg,rgba(255,255,255,.96),rgba(255,228,236,.84)); border:1px solid rgba(255,255,255,.92); }
     .progress-head { display:flex; justify-content:space-between; gap:16px; align-items:center; }
-    .eyebrow { margin:0; color:var(--rose-dark); font-size:14px; font-weight:800; }
+    .eyebrow { margin:0; color:var(--rose-dark); font-size:14px; font-weight:850; }
     .big-number { margin:4px 0 0; font-size:36px; font-weight:950; letter-spacing:-.04em; }
     .badge { width:64px; height:64px; display:grid; place-items:center; border-radius:18px; background:#fff; color:var(--rose-dark); font-size:36px; box-shadow: inset 0 0 0 1px #ffe2ea; }
     .bar { height:14px; margin-top:18px; overflow:hidden; border-radius:999px; background:rgba(255,255,255,.9); border:1px solid #ffe0e8; }
@@ -35,7 +41,7 @@
     .toolbar { position:sticky; top:12px; z-index:10; margin-bottom:22px; padding:16px; border-radius:26px; background:rgba(255,255,255,.76); border:1px solid rgba(255,255,255,.86); box-shadow:0 18px 50px rgba(170,93,121,.12); backdrop-filter:blur(18px); display:grid; grid-template-columns:1fr 210px 170px; gap:12px; }
     .searchbox { position:relative; }
     .searchbox span { position:absolute; left:15px; top:50%; transform:translateY(-50%); color:#98a2b3; }
-    input, select, textarea { width:100%; border:1px solid #ffe0e8; outline:0; background:rgba(255,255,255,.86); border-radius:18px; padding:13px 15px; color:#243047; }
+    input, select, textarea { width:100%; border:1px solid #ffe0e8; outline:0; background:rgba(255,255,255,.9); border-radius:18px; padding:13px 15px; color:#243047; }
     .searchbox input { padding-left:42px; }
     input:focus, select:focus, textarea:focus { border-color:#f5a5bd; box-shadow:0 0 0 4px rgba(232,93,139,.12); }
     .category-stats { display:grid; grid-template-columns:repeat(4,1fr); gap:14px; margin-bottom:22px; }
@@ -47,60 +53,72 @@
     .list { display:grid; gap:22px; padding-bottom:50px; }
     .section { overflow:hidden; border-radius:30px; background:rgba(255,255,255,.82); border:1px solid rgba(255,255,255,.85); box-shadow:0 18px 50px rgba(170,93,121,.1); }
     .section-head { display:flex; justify-content:space-between; align-items:center; gap:14px; padding:20px 22px; border-bottom:1px solid #ffe5ec; background:rgba(255,255,255,.58); }
+    .section-title { display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
     .section h2 { margin:0; font-size:22px; letter-spacing:-.02em; }
     .section-sub { margin:4px 0 0; color:var(--muted); font-size:14px; }
-    .add-category { color:var(--rose-dark); background:#fff0f5; padding:10px 15px; border-radius:999px; font-weight:800; white-space:nowrap; }
+    .section-actions { display:flex; gap:8px; flex-wrap:wrap; justify-content:flex-end; }
+    .add-category, .rename-category { color:var(--rose-dark); background:#fff0f5; padding:10px 15px; border-radius:999px; font-weight:850; white-space:nowrap; }
+    .rename-category { color:#475467; background:#f7f5f6; }
     .items { display:grid; }
-    .item { display:flex; align-items:center; justify-content:space-between; gap:16px; padding:16px 22px; border-top:1px solid #fff1f5; }
-    .item:first-child { border-top:0; }
+    .swipe-row { position:relative; overflow:hidden; border-top:1px solid #fff1f5; background:rgba(255,255,255,.35); touch-action:pan-y; }
+    .swipe-row:first-child { border-top:0; }
+    .swipe-actions { position:absolute; inset:0 0 0 auto; width:156px; display:flex; align-items:stretch; justify-content:flex-end; background:linear-gradient(90deg,rgba(255,255,255,0),rgba(255,241,245,.98)); opacity:0; pointer-events:none; transition:opacity .18s ease; }
+    .swipe-row.open .swipe-actions { opacity:1; pointer-events:auto; }
+    .swipe-actions button { width:78px; font-weight:900; color:#fff; }
+    .swipe-actions .edit-btn { background:#64748b; }
+    .swipe-actions .delete-btn { background:#e11d48; }
+    .item { position:relative; z-index:1; display:flex; align-items:center; justify-content:space-between; gap:16px; padding:16px 22px; background:#fff; transition:transform .22s ease, background .22s ease; will-change:transform; }
+    .swipe-row.open .item { transform:translateX(-156px); }
+    .swipe-row.open .hint { opacity:0; }
     .item label { min-width:0; flex:1; display:flex; align-items:flex-start; gap:14px; cursor:pointer; }
     .item input[type="checkbox"] { width:20px; height:20px; flex:0 0 auto; margin:2px 0 0; accent-color:var(--rose); box-shadow:none; }
     .item-title { display:block; font-weight:900; line-height:1.35; word-break:break-word; }
     .item-meta { display:block; margin-top:5px; color:var(--muted); font-size:14px; line-height:1.55; }
     .item-meta strong { color:#344054; }
-    .item.done { background:linear-gradient(90deg, rgba(236,253,245,.95), rgba(255,247,250,.72)); }
-    .item.done .item-title { color:#087f5b; text-decoration:none; }
-    .item-content { min-width:0; flex:1; display:flex; align-items:flex-start; gap:12px; }
-    .thumb { width:58px; height:58px; flex:0 0 auto; border-radius:18px; object-fit:cover; border:1px solid #ffe0e8; background:#fff7fa; box-shadow:0 8px 18px rgba(170,93,121,.12); }
+    .swipe-row.done .item { background:linear-gradient(90deg, rgba(236,253,245,.96), rgba(248,255,252,.93)); }
+    .swipe-row.done .item-title { color:var(--green); text-decoration:none; }
+    .item-content { min-width:0; flex:1; display:flex; flex-direction:column; gap:10px; }
+    .item-main { display:flex; align-items:flex-start; gap:12px; }
+    .thumb-row { display:flex; gap:10px; overflow-x:auto; padding:2px 0 4px 32px; scrollbar-width:thin; }
+    .thumb { width:70px; height:70px; flex:0 0 auto; border-radius:18px; object-fit:cover; border:1px solid #ffe0e8; background:#fff7fa; box-shadow:0 8px 18px rgba(170,93,121,.12); }
+    .hint { color:#c4a1ad; font-size:12px; white-space:nowrap; transition:.2s ease; }
     .image-upload { display:grid; gap:10px; padding:14px; border:1px dashed #f3b8c9; border-radius:20px; background:#fff8fb; }
-    .image-preview { display:none; width:96px; height:96px; border-radius:22px; object-fit:cover; border:1px solid #ffe0e8; }
-    .image-preview.show { display:block; }
-    .link-btn { width:auto; color:var(--rose-dark); background:transparent; padding:0; font-weight:800; }
-    .item-actions { display:flex; gap:8px; flex:0 0 auto; }
-    .small-btn { border-radius:999px; padding:9px 13px; font-size:14px; font-weight:800; }
-    .edit-btn { color:#475467; background:#f2f4f7; }
-    .delete-btn { color:var(--rose-dark); background:#fff0f5; }
+    .preview-strip { display:flex; gap:10px; overflow-x:auto; padding-bottom:4px; }
+    .image-preview { width:88px; height:88px; flex:0 0 auto; border-radius:22px; object-fit:cover; border:1px solid #ffe0e8; }
+    .link-btn { width:auto; color:var(--rose-dark); background:transparent; padding:0; font-weight:850; text-align:left; }
     .empty { display:none; margin-bottom:50px; padding:44px; text-align:center; border-radius:30px; border:1px dashed #f2b8c8; background:rgba(255,255,255,.72); }
     .empty.show { display:block; }
     .empty .icon { display:block; font-size:48px; color:#f3a8bd; }
     .modal { display:none; position:fixed; inset:0; z-index:50; align-items:center; justify-content:center; padding:18px; background:rgba(15,23,42,.38); }
     .modal.show { display:flex; }
-    .dialog { width:min(560px,100%); padding:24px; border-radius:30px; background:#fff; box-shadow:0 28px 90px rgba(15,23,42,.24); }
+    .dialog { width:min(580px,100%); max-height:calc(100vh - 36px); overflow:auto; padding:24px; border-radius:30px; background:#fff; box-shadow:0 28px 90px rgba(15,23,42,.24); }
     .dialog-head { display:flex; justify-content:space-between; gap:16px; align-items:flex-start; margin-bottom:18px; }
     .dialog-title { margin:4px 0 0; font-size:28px; font-weight:950; }
     .close { width:40px; height:40px; border-radius:999px; color:#667085; background:#f2f4f7; font-size:24px; }
     .form-grid { display:grid; gap:15px; }
-    label.field { display:grid; gap:8px; color:#344054; font-size:14px; font-weight:800; }
+    label.field { display:grid; gap:8px; color:#344054; font-size:14px; font-weight:850; }
     .two-col { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+    .category-grid { display:grid; grid-template-columns:1fr; gap:10px; }
     textarea { resize:vertical; min-height:92px; }
     .dialog-actions { display:flex; justify-content:flex-end; gap:10px; margin-top:20px; }
     .cancel { background:#f2f4f7; color:#475467; }
     .save { background:var(--rose); color:#fff; }
     .icon { display:inline-flex; align-items:center; justify-content:center; line-height:1; }
     @media (max-width: 900px) { .hero { grid-template-columns:1fr; padding:24px; } .toolbar { grid-template-columns:1fr; } .category-stats { grid-template-columns:repeat(2,1fr); } }
-    @media (max-width: 640px) { .wrap { width:min(100% - 22px,1180px); } .hero { margin-top:18px; border-radius:26px; } .mini-stats, .two-col { grid-template-columns:1fr; } .category-stats { grid-template-columns:1fr; } .section-head, .item { align-items:stretch; flex-direction:column; } .item-actions { align-self:flex-end; } .add-category { width:100%; } }
+    @media (max-width: 640px) { .wrap { width:min(100% - 22px,1180px); } .hero { margin-top:18px; border-radius:26px; } .mini-stats, .two-col { grid-template-columns:1fr; } .category-stats { grid-template-columns:1fr; } .section-head { align-items:stretch; flex-direction:column; } .section-actions { justify-content:flex-start; } .add-category, .rename-category { width:100%; } .hint { display:none; } }
   </style>
 </head>
 <body>
   <header class="wrap hero">
     <div>
-      <div class="pill"><span class="icon">♡</span> Baby 及待产准备</div>
-      <h1>孕妇备产清单</h1>
-      <p class="lead">把妈妈和宝宝的待产物品整理成可勾选、可搜索、可增删改的网页清单。记录会同步保存到云端，其他人打开同一个链接也能看到最新状态。</p>
+      <div class="pill"><span class="icon">♡</span> 给宝宝和妈妈的安心准备</div>
+      <h1>待产准备，一件件放心完成</h1>
+      <p class="lead">把要买、要带、要确认的物品收进同一份云端清单。家人打开同一个链接就能看到最新进度，左滑每一项即可管理，重要物品还可以配图记录。</p>
+      <div class="hero-note"><span>云端共享</span><span>自定义分类</span><span>多图记录</span><span>左滑编辑/删除</span></div>
       <div class="actions">
         <button id="addTopBtn" class="btn btn-primary"><span class="icon">＋</span> 新增物品</button>
         <button id="resetBtn" class="btn btn-soft"><span class="icon">↻</span> 恢复初始清单</button>
-        <span id="syncStatus" class="pill">云端同步中…</span>
+        <span id="syncStatus" class="sync-mini">同步中</span>
       </div>
     </div>
     <aside class="progress-card">
@@ -127,12 +145,13 @@
       <input type="hidden" id="itemId" />
       <div class="form-grid">
         <label class="field">物品名称<input id="itemName" required placeholder="例如：160毫升玻璃奶瓶" /></label>
-        <div class="two-col"><label class="field">分类<input id="itemCategory" required list="categoryOptions" placeholder="例如：宝宝部分·吃" /><datalist id="categoryOptions"></datalist></label><label class="field">数量/规格<input id="itemQty" placeholder="例如：×1、S码200片" /></label></div>
+        <div class="two-col"><label class="field">数量/规格<input id="itemQty" placeholder="例如：×1、S码200片" /></label><label class="field">切换到已有分类<select id="categorySelect"></select></label></div>
+        <label class="field category-grid">分类名称<input id="itemCategory" required placeholder="可输入新分类，或从上方选择已有分类" /></label>
         <label class="field">备注<textarea id="itemNote" rows="3" placeholder="购买地点、用途或提醒"></textarea></label>
-        <label class="field image-upload">物品图片
-          <input id="itemImage" type="file" accept="image/*" />
-          <img id="imagePreview" class="image-preview" alt="物品图片预览" />
-          <button id="removeImageBtn" type="button" class="link-btn">移除图片</button>
+        <label class="field image-upload">物品图片（可多选，保存后横向展示在物品下方）
+          <input id="itemImage" type="file" accept="image/*" multiple />
+          <div id="imagePreview" class="preview-strip"></div>
+          <button id="removeImageBtn" type="button" class="link-btn">清空图片</button>
         </label>
       </div>
       <div class="dialog-actions"><button type="button" id="cancelBtn" class="btn cancel">取消</button><button class="btn save">保存</button></div>
@@ -154,144 +173,75 @@
     let items = [];
     let lastCloudUpdatedAt = 0;
     let saveTimer = null;
+    let startX = 0;
+    let activeRow = null;
+    let currentImages = [];
     const $ = s => document.querySelector(s);
-    const listRoot = $('#listRoot'), emptyState = $('#emptyState'), searchInput = $('#searchInput'), categoryFilter = $('#categoryFilter'), statusFilter = $('#statusFilter'), modal = $('#itemModal'), itemForm = $('#itemForm'), imageInput = $('#itemImage'), imagePreview = $('#imagePreview'), removeImageBtn = $('#removeImageBtn');
-    let currentImageData = '';
+    const listRoot = $('#listRoot'), emptyState = $('#emptyState'), searchInput = $('#searchInput'), categoryFilter = $('#categoryFilter'), statusFilter = $('#statusFilter'), modal = $('#itemModal'), itemForm = $('#itemForm'), imageInput = $('#itemImage'), imagePreview = $('#imagePreview'), removeImageBtn = $('#removeImageBtn'), categorySelect = $('#categorySelect');
     function loadItems(){ try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || initialItems; } catch { return initialItems; } }
     function setSyncStatus(text){ const node = $('#syncStatus'); if (node) node.textContent = text; }
     async function loadFromCloud(){
-      setSyncStatus('云端同步中…');
-      try {
-        const response = await fetch(`${API_URL}/api/v1/checklist`, { cache: 'no-store' });
-        if (!response.ok) throw new Error(`HTTP ${response.status}`);
-        const data = await response.json();
-        items = Array.isArray(data.items) ? data.items : initialItems;
-        lastCloudUpdatedAt = data.updatedAt || Date.now();
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
-        setSyncStatus('已云端同步');
-      } catch (error) {
-        console.warn('读取云端清单失败，暂用本地缓存', error);
-        items = loadItems();
-        setSyncStatus('云端连接失败，暂存本机');
-      }
+      setSyncStatus('同步中');
+      try { const response = await fetch(`${API_URL}/api/v1/checklist`, { cache: 'no-store' }); if (!response.ok) throw new Error(`HTTP ${response.status}`); const data = await response.json(); items = Array.isArray(data.items) ? data.items : initialItems; lastCloudUpdatedAt = data.updatedAt || Date.now(); localStorage.setItem(STORAGE_KEY, JSON.stringify(items)); setSyncStatus('已同步'); }
+      catch (error) { console.warn('读取云端清单失败，暂用本地缓存', error); items = loadItems(); setSyncStatus('离线缓存'); }
       renderList();
     }
     async function refreshFromCloud(){
-      try {
-        const response = await fetch(`${API_URL}/api/v1/checklist`, { cache: 'no-store' });
-        if (!response.ok) throw new Error(`HTTP ${response.status}`);
-        const data = await response.json();
-        if (data.updatedAt && data.updatedAt !== lastCloudUpdatedAt) {
-          items = Array.isArray(data.items) ? data.items : items;
-          lastCloudUpdatedAt = data.updatedAt;
-          localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
-          setSyncStatus('已同步最新');
-          renderList();
-        }
-      } catch (error) {
-        console.warn('刷新云端清单失败', error);
-      }
+      try { const response = await fetch(`${API_URL}/api/v1/checklist`, { cache: 'no-store' }); if (!response.ok) throw new Error(`HTTP ${response.status}`); const data = await response.json(); if (data.updatedAt && data.updatedAt !== lastCloudUpdatedAt) { items = Array.isArray(data.items) ? data.items : items; lastCloudUpdatedAt = data.updatedAt; localStorage.setItem(STORAGE_KEY, JSON.stringify(items)); setSyncStatus('已更新'); renderList(); } }
+      catch (error) { console.warn('刷新云端清单失败', error); }
     }
     function saveItems(){
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
-      setSyncStatus('正在保存…');
-      clearTimeout(saveTimer);
-      saveTimer = setTimeout(async () => {
-        try {
-          const response = await fetch(`${API_URL}/api/v1/checklist`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ items })
-          });
-          if (!response.ok) throw new Error(`HTTP ${response.status}`);
-          const data = await response.json();
-          lastCloudUpdatedAt = data.updatedAt || Date.now();
-          setSyncStatus('已云端同步');
-        } catch (error) {
-          console.warn('保存云端清单失败', error);
-          setSyncStatus('保存失败，稍后重试');
-        }
-      }, 250);
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(items)); setSyncStatus('保存中'); clearTimeout(saveTimer);
+      saveTimer = setTimeout(async () => { try { const response = await fetch(`${API_URL}/api/v1/checklist`, { method:'PUT', headers:{ 'Content-Type':'application/json' }, body:JSON.stringify({ items }) }); if (!response.ok) throw new Error(`HTTP ${response.status}`); const data = await response.json(); lastCloudUpdatedAt = data.updatedAt || Date.now(); setSyncStatus('已同步'); } catch (error) { console.warn('保存云端清单失败', error); setSyncStatus('保存失败'); } }, 250);
     }
     async function resetCloud(){
-      setSyncStatus('正在恢复…');
-      try {
-        const response = await fetch(`${API_URL}/api/v1/checklist/reset`, { method: 'POST' });
-        if (!response.ok) throw new Error(`HTTP ${response.status}`);
-        const data = await response.json();
-        items = Array.isArray(data.items) ? data.items : initialItems;
-        lastCloudUpdatedAt = data.updatedAt || Date.now();
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
-        setSyncStatus('已云端同步');
-        renderList();
-      } catch (error) {
-        console.warn('恢复云端清单失败', error);
-        items = initialItems;
-        saveItems();
-        renderList();
-      }
+      setSyncStatus('恢复中');
+      try { const response = await fetch(`${API_URL}/api/v1/checklist/reset`, { method:'POST' }); if (!response.ok) throw new Error(`HTTP ${response.status}`); const data = await response.json(); items = Array.isArray(data.items) ? data.items : initialItems; lastCloudUpdatedAt = data.updatedAt || Date.now(); localStorage.setItem(STORAGE_KEY, JSON.stringify(items)); setSyncStatus('已同步'); renderList(); }
+      catch (error) { console.warn('恢复云端清单失败', error); items = initialItems; saveItems(); renderList(); }
     }
-    function categories(){ return [...new Set(items.map(i => i.category))]; }
+    function categories(){ return [...new Set(items.map(i => i.category).filter(Boolean))]; }
     function escapeHtml(str=''){ return String(str).replace(/[&<>'"]/g, tag => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[tag])); }
-    function updateImagePreview(){ imagePreview.src = currentImageData || ''; imagePreview.classList.toggle('show', Boolean(currentImageData)); removeImageBtn.style.display = currentImageData ? 'inline-block' : 'none'; }
+    function renderCategorySelect(selected='') { categorySelect.innerHTML = '<option value="">选择已有分类</option>' + categories().map(c => `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join(''); categorySelect.value = categories().includes(selected) ? selected : ''; }
+    function normalizeImages(item){ return Array.isArray(item?.images) ? item.images : (item?.image ? [item.image] : []); }
+    function updateImagePreview(){ imagePreview.innerHTML = currentImages.map((src, index) => `<img class="image-preview" src="${src}" alt="第${index + 1}张预览图">`).join(''); removeImageBtn.style.display = currentImages.length ? 'inline-block' : 'none'; }
     function openModal(item=null, defaultCategory=''){
       document.body.style.overflow='hidden'; modal.classList.add('show'); $('#modalTitle').textContent=item?'编辑物品':'新增物品';
-      $('#itemId').value=item?.id||''; $('#itemName').value=item?.name||''; $('#itemCategory').value=item?.category||defaultCategory||categories()[0]||'待产清单';
-      $('#itemQty').value=item?.qty||''; $('#itemNote').value=item?.note||''; currentImageData = item?.image || ''; imageInput.value=''; updateImagePreview();
-      setTimeout(()=>$('#itemName').focus(),60);
+      const selectedCategory = item?.category || defaultCategory || categories()[0] || '待产清单';
+      renderCategorySelect(selectedCategory); $('#itemId').value=item?.id||''; $('#itemName').value=item?.name||''; $('#itemCategory').value=selectedCategory; $('#itemQty').value=item?.qty||''; $('#itemNote').value=item?.note||''; currentImages = normalizeImages(item); imageInput.value=''; updateImagePreview(); setTimeout(()=>$('#itemName').focus(),60);
     }
-    function closeModal(){ modal.classList.remove('show'); document.body.style.overflow=''; itemForm.reset(); currentImageData=''; updateImagePreview(); }
+    function closeModal(){ modal.classList.remove('show'); document.body.style.overflow=''; itemForm.reset(); currentImages=[]; updateImagePreview(); }
     function filteredItems(){ const q=searchInput.value.trim().toLowerCase(), c=categoryFilter.value, s=statusFilter.value; return items.filter(i => [i.name,i.category,i.qty,i.note].join(' ').toLowerCase().includes(q) && (c==='all'||i.category===c) && (s==='all'||(s==='done'?i.done:!i.done))); }
-    function renderControls(){ const current=categoryFilter.value||'all'; categoryFilter.innerHTML='<option value="all">全部分类</option>'+categories().map(c=>`<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join(''); categoryFilter.value=categories().includes(current)?current:'all'; $('#categoryOptions').innerHTML=categories().map(c=>`<option value="${escapeHtml(c)}"></option>`).join(''); }
+    function renderControls(){ const current=categoryFilter.value||'all'; categoryFilter.innerHTML='<option value="all">全部分类</option>'+categories().map(c=>`<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join(''); categoryFilter.value=categories().includes(current)?current:'all'; }
     function renderStats(){ const done=items.filter(i=>i.done).length, total=items.length, pct=total?Math.round(done/total*100):0; $('#progressText').textContent=`${done}/${total}`; $('#progressBar').style.width=`${pct}%`; $('#totalCount').textContent=total; $('#doneCount').textContent=done; $('#todoCount').textContent=total-done; $('#categoryStats').innerHTML=categories().map(c=>{ const g=items.filter(i=>i.category===c), d=g.filter(i=>i.done).length, p=g.length?Math.round(d/g.length*100):0; return `<button class="stat-card" data-filter-category="${escapeHtml(c)}"><div class="stat-top"><span>${escapeHtml(c)}</span><b>${p}%</b></div><p>${d}/${g.length} 已完成</p><div class="bar"><i style="width:${p}%"></i></div></button>`; }).join(''); }
     function renderList(){
-      renderControls(); renderStats();
-      const visible=filteredItems(), grouped=visible.reduce((a,i)=>{(a[i.category] ||= []).push(i); return a;},{});
-      listRoot.innerHTML=''; emptyState.classList.toggle('show', visible.length===0);
+      renderControls(); renderStats(); const visible=filteredItems(), grouped=visible.reduce((a,i)=>{(a[i.category] ||= []).push(i); return a;},{}); listRoot.innerHTML=''; emptyState.classList.toggle('show', visible.length===0);
       Object.entries(grouped).forEach(([category, group])=>{
         const section=document.createElement('article'); section.className='section';
-        section.innerHTML=`<div class="section-head"><div><h2>${escapeHtml(category)}</h2><p class="section-sub">${group.filter(i=>i.done).length}/${group.length} 已完成</p></div><button class="add-category">＋ 添加到此类</button></div><div class="items"></div>`;
-        section.querySelector('.add-category').addEventListener('click',()=>openModal(null,category));
+        section.innerHTML=`<div class="section-head"><div><div class="section-title"><h2>${escapeHtml(category)}</h2></div><p class="section-sub">${group.filter(i=>i.done).length}/${group.length} 已完成 · 左滑物品可编辑/删除</p></div><div class="section-actions"><button class="rename-category" data-category="${escapeHtml(category)}">编辑分类名</button><button class="add-category">＋ 添加到此类</button></div></div><div class="items"></div>`;
+        section.querySelector('.add-category').addEventListener('click',()=>openModal(null,category)); section.querySelector('.rename-category').addEventListener('click',()=>renameCategory(category));
         const box=section.querySelector('.items');
         group.sort((a,b)=>a.createdAt-b.createdAt).forEach(item=>{
-          const row=document.createElement('div'); row.className=`item ${item.done?'done':''}`;
-          const imageHtml = item.image ? `<img class="thumb" src="${item.image}" alt="${escapeHtml(item.name)}图片">` : '';
-          row.innerHTML=`<label><input type="checkbox" ${item.done?'checked':''} data-action="toggle" data-id="${item.id}"><span class="item-content">${imageHtml}<span><span class="item-title">${escapeHtml(item.name)}</span><span class="item-meta">${item.qty?`<strong>${escapeHtml(item.qty)}</strong>`:''}${item.qty&&item.note?' · ':''}${escapeHtml(item.note||'')}</span></span></span></label><div class="item-actions"><button class="small-btn edit-btn" data-action="edit" data-id="${item.id}">编辑</button><button class="small-btn delete-btn" data-action="delete" data-id="${item.id}">删除</button></div>`;
+          const row=document.createElement('div'); row.className=`swipe-row ${item.done?'done':''}`; row.dataset.id = item.id;
+          const imageList = normalizeImages(item);
+          const imageHtml = imageList.length ? `<div class="thumb-row">${imageList.map((src, index) => `<img class="thumb" src="${src}" alt="${escapeHtml(item.name)}图片${index + 1}">`).join('')}</div>` : '';
+          row.innerHTML=`<div class="swipe-actions"><button class="edit-btn" data-action="edit" data-id="${item.id}">编辑</button><button class="delete-btn" data-action="delete" data-id="${item.id}">删除</button></div><div class="item"><label><input type="checkbox" ${item.done?'checked':''} data-action="toggle" data-id="${item.id}"><span class="item-content"><span class="item-main"><span><span class="item-title">${escapeHtml(item.name)}</span><span class="item-meta">${item.qty?`<strong>${escapeHtml(item.qty)}</strong>`:''}${item.qty&&item.note?' · ':''}${escapeHtml(item.note||'')}</span></span></span>${imageHtml}</span></label><span class="hint">左滑管理</span></div>`;
           box.appendChild(row);
         });
         listRoot.appendChild(section);
       });
     }
-    function fileToCompressedDataUrl(file){
-      return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onerror = reject;
-        reader.onload = () => {
-          const img = new Image();
-          img.onerror = reject;
-          img.onload = () => {
-            const max = 900;
-            const scale = Math.min(1, max / Math.max(img.width, img.height));
-            const canvas = document.createElement('canvas');
-            canvas.width = Math.max(1, Math.round(img.width * scale));
-            canvas.height = Math.max(1, Math.round(img.height * scale));
-            canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
-            resolve(canvas.toDataURL('image/jpeg', 0.82));
-          };
-          img.src = reader.result;
-        };
-        reader.readAsDataURL(file);
-      });
-    }
-    $('#addTopBtn').addEventListener('click',()=>openModal()); $('#closeModalBtn').addEventListener('click',closeModal); $('#cancelBtn').addEventListener('click',closeModal); modal.addEventListener('click',e=>{ if(e.target===modal) closeModal(); }); searchInput.addEventListener('input',renderList); categoryFilter.addEventListener('change',renderList); statusFilter.addEventListener('change',renderList);
-    imageInput.addEventListener('change', async e => { const file=e.target.files && e.target.files[0]; if(!file) return; currentImageData = await fileToCompressedDataUrl(file); updateImagePreview(); });
-    removeImageBtn.addEventListener('click', () => { currentImageData=''; imageInput.value=''; updateImagePreview(); });
+    function renameCategory(oldName){ const next = prompt('修改分类名称', oldName); if (!next || next.trim() === oldName) return; const name = next.trim(); items = items.map(item => item.category === oldName ? { ...item, category:name } : item); saveItems(); renderList(); }
+    function closeSwipeRows(except=null){ document.querySelectorAll('.swipe-row.open').forEach(row => { if(row !== except) row.classList.remove('open'); }); }
+    function fileToCompressedDataUrl(file){ return new Promise((resolve, reject) => { const reader = new FileReader(); reader.onerror = reject; reader.onload = () => { const img = new Image(); img.onerror = reject; img.onload = () => { const max = 900; const scale = Math.min(1, max / Math.max(img.width, img.height)); const canvas = document.createElement('canvas'); canvas.width = Math.max(1, Math.round(img.width * scale)); canvas.height = Math.max(1, Math.round(img.height * scale)); canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height); resolve(canvas.toDataURL('image/jpeg', 0.82)); }; img.src = reader.result; }; reader.readAsDataURL(file); }); }
+    $('#addTopBtn').addEventListener('click',()=>openModal()); $('#closeModalBtn').addEventListener('click',closeModal); $('#cancelBtn').addEventListener('click',closeModal); modal.addEventListener('click',e=>{ if(e.target===modal) closeModal(); }); searchInput.addEventListener('input',renderList); categoryFilter.addEventListener('change',renderList); statusFilter.addEventListener('change',renderList); categorySelect.addEventListener('change', e => { if(e.target.value) $('#itemCategory').value = e.target.value; });
+    imageInput.addEventListener('change', async e => { const files=Array.from(e.target.files || []); if(!files.length) return; const uploaded = await Promise.all(files.map(fileToCompressedDataUrl)); currentImages = currentImages.concat(uploaded); updateImagePreview(); }); removeImageBtn.addEventListener('click', () => { currentImages=[]; imageInput.value=''; updateImagePreview(); });
     $('#categoryStats').addEventListener('click', e => { const btn=e.target.closest('[data-filter-category]'); if(!btn) return; categoryFilter.value=btn.dataset.filterCategory; renderList(); window.scrollTo({top:250, behavior:'smooth'}); });
-    listRoot.addEventListener('click', e => { const t=e.target.closest('[data-action]'); if(!t) return; const item=items.find(i=>i.id===t.dataset.id); if(!item) return; if(t.dataset.action==='toggle') item.done=t.checked; if(t.dataset.action==='edit') return openModal(item); if(t.dataset.action==='delete' && confirm(`确定删除“${item.name}”吗？`)) items=items.filter(i=>i.id!==item.id); saveItems(); renderList(); });
-    itemForm.addEventListener('submit', e => { e.preventDefault(); const id=$('#itemId').value; const payload={name:$('#itemName').value.trim(), category:$('#itemCategory').value.trim(), qty:$('#itemQty').value.trim(), note:$('#itemNote').value.trim(), image:currentImageData}; if(!payload.name||!payload.category) return; if(id) items=items.map(i=>i.id===id?{...i,...payload}:i); else items.push({id:crypto.randomUUID?crypto.randomUUID():`item-${Date.now()}`,...payload,done:false,createdAt:Date.now()}); saveItems(); closeModal(); renderList(); });
+    listRoot.addEventListener('pointerdown', e => { const row=e.target.closest('.swipe-row'); if(!row || e.target.closest('button,input')) return; activeRow=row; startX=e.clientX; });
+    listRoot.addEventListener('pointerup', e => { if(!activeRow) return; const dx=e.clientX-startX; if(dx < -35) { closeSwipeRows(activeRow); activeRow.classList.add('open'); } else if(dx > 25 || Math.abs(dx) < 8) { activeRow.classList.remove('open'); } activeRow=null; });
+    listRoot.addEventListener('click', e => { const t=e.target.closest('[data-action]'); if(!t) { if(!e.target.closest('.swipe-row.open')) closeSwipeRows(); return; } const item=items.find(i=>i.id===t.dataset.id); if(!item) return; if(t.dataset.action==='toggle') { item.done=t.checked; saveItems(); renderList(); return; } if(t.dataset.action==='edit') { closeSwipeRows(); return openModal(item); } if(t.dataset.action==='delete' && confirm(`确定删除“${item.name}”吗？`)) items=items.filter(i=>i.id!==item.id); saveItems(); renderList(); });
+    itemForm.addEventListener('submit', e => { e.preventDefault(); const id=$('#itemId').value; const payload={name:$('#itemName').value.trim(), category:$('#itemCategory').value.trim(), qty:$('#itemQty').value.trim(), note:$('#itemNote').value.trim(), images:currentImages}; if(!payload.name||!payload.category) return; if(id) items=items.map(i=>i.id===id?{...i,...payload,image:''}:i); else items.push({id:crypto.randomUUID?crypto.randomUUID():`item-${Date.now()}`,...payload,done:false,createdAt:Date.now()}); saveItems(); closeModal(); renderList(); });
     $('#resetBtn').addEventListener('click',()=>{ if(confirm('恢复初始清单会覆盖所有人看到的云端记录，确定继续吗？')) resetCloud(); });
-    loadFromCloud();
-    setInterval(refreshFromCloud, 15000);
+    loadFromCloud(); setInterval(refreshFromCloud, 15000);
   </script>
 </body>
 </html>
