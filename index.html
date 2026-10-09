@@ -4,267 +4,157 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>孕妇备产清单</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@100..900&display=swap" rel="stylesheet">
-  <!-- 图标使用原生字符，避免外部图标字体加载失败 -->
-  <script src="https://cdn.tailwindcss.com"></script>
   <style>
-    :root { color-scheme: light; }
-    body { font-family: 'Noto Sans SC', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
-    .glass { backdrop-filter: blur(22px); background: rgba(255,255,255,.72); border: 1px solid rgba(255,255,255,.75); box-shadow: 0 24px 70px rgba(170, 93, 121, .16); }
-    .card { transition: transform .22s ease, box-shadow .22s ease, border-color .22s ease; }
-    .card:hover { transform: translateY(-2px); box-shadow: 0 18px 45px rgba(171, 93, 120, .14); }
-    .soft-grid { background-image: radial-gradient(circle at 20% 20%, rgba(252, 186, 211, .36), transparent 26%), radial-gradient(circle at 80% 0%, rgba(183, 209, 255, .35), transparent 30%), radial-gradient(circle at 50% 90%, rgba(255, 228, 181, .38), transparent 28%); }
-    .item-done .item-title { text-decoration: line-through; color: #9f7183; }
-    .modal-open { overflow: hidden; }
-    .icon { display: inline-flex; align-items: center; justify-content: center; line-height: 1; }
+    * { box-sizing: border-box; }
+    :root { --rose:#e85d8b; --rose-dark:#be2f62; --ink:#172033; --muted:#667085; --line:#f5d6df; --paper:rgba(255,255,255,.82); --shadow:0 24px 70px rgba(170,93,121,.16); }
+    body { margin:0; min-height:100vh; color:var(--ink); font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans SC","PingFang SC","Microsoft YaHei",sans-serif; background: radial-gradient(circle at 15% 14%, rgba(252,186,211,.55), transparent 27%), radial-gradient(circle at 86% 4%, rgba(183,209,255,.42), transparent 28%), radial-gradient(circle at 48% 98%, rgba(255,228,181,.48), transparent 30%), linear-gradient(135deg,#fff7fa,#fff1f4 48%,#fff8ec); }
+    button, input, select, textarea { font:inherit; }
+    button { cursor:pointer; border:0; }
+    .wrap { width:min(1180px, calc(100% - 32px)); margin:0 auto; }
+    .hero { margin:32px auto 24px; padding:32px; border-radius:32px; background:var(--paper); border:1px solid rgba(255,255,255,.84); box-shadow:var(--shadow); backdrop-filter: blur(22px); display:grid; grid-template-columns:1.2fr .8fr; gap:32px; align-items:center; }
+    .pill { display:inline-flex; align-items:center; gap:8px; padding:9px 15px; border-radius:999px; background:rgba(255,255,255,.76); color:var(--rose-dark); font-weight:700; border:1px solid #ffe0e8; }
+    h1 { margin:14px 0 0; font-size:clamp(36px, 5vw, 58px); line-height:1.06; letter-spacing:-.04em; }
+    .lead { margin:18px 0 0; max-width:720px; color:#5d6679; line-height:1.9; font-size:18px; }
+    .actions { display:flex; flex-wrap:wrap; gap:12px; margin-top:24px; }
+    .btn { display:inline-flex; align-items:center; justify-content:center; gap:8px; border-radius:999px; padding:12px 20px; font-weight:800; transition:.2s ease; }
+    .btn:hover { transform:translateY(-1px); }
+    .btn-primary { color:#fff; background:#111827; box-shadow:0 14px 30px rgba(232,93,139,.24); }
+    .btn-primary:hover { background:var(--rose-dark); }
+    .btn-soft { color:var(--rose-dark); background:rgba(255,255,255,.86); border:1px solid #ffd9e4; }
+    .progress-card { border-radius:28px; padding:22px; background:linear-gradient(135deg,rgba(255,255,255,.95),rgba(255,228,236,.82)); border:1px solid rgba(255,255,255,.92); }
+    .progress-head { display:flex; justify-content:space-between; gap:16px; align-items:center; }
+    .eyebrow { margin:0; color:var(--rose-dark); font-size:14px; font-weight:800; }
+    .big-number { margin:4px 0 0; font-size:36px; font-weight:950; letter-spacing:-.04em; }
+    .badge { width:64px; height:64px; display:grid; place-items:center; border-radius:18px; background:#fff; color:var(--rose-dark); font-size:36px; box-shadow: inset 0 0 0 1px #ffe2ea; }
+    .bar { height:14px; margin-top:18px; overflow:hidden; border-radius:999px; background:rgba(255,255,255,.9); border:1px solid #ffe0e8; }
+    .bar > i { display:block; height:100%; width:0; border-radius:999px; background:linear-gradient(90deg,#fb7185,#ec4899,#fb923c); transition:width .45s ease; }
+    .mini-stats { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-top:16px; }
+    .mini { padding:12px; text-align:center; background:rgba(255,255,255,.78); border-radius:18px; }
+    .mini span { display:block; color:var(--muted); font-size:12px; }
+    .mini strong { display:block; margin-top:2px; font-size:22px; }
+    .toolbar { position:sticky; top:12px; z-index:10; margin-bottom:22px; padding:16px; border-radius:26px; background:rgba(255,255,255,.76); border:1px solid rgba(255,255,255,.86); box-shadow:0 18px 50px rgba(170,93,121,.12); backdrop-filter:blur(18px); display:grid; grid-template-columns:1fr 210px 170px; gap:12px; }
+    .searchbox { position:relative; }
+    .searchbox span { position:absolute; left:15px; top:50%; transform:translateY(-50%); color:#98a2b3; }
+    input, select, textarea { width:100%; border:1px solid #ffe0e8; outline:0; background:rgba(255,255,255,.86); border-radius:18px; padding:13px 15px; color:#243047; }
+    .searchbox input { padding-left:42px; }
+    input:focus, select:focus, textarea:focus { border-color:#f5a5bd; box-shadow:0 0 0 4px rgba(232,93,139,.12); }
+    .category-stats { display:grid; grid-template-columns:repeat(4,1fr); gap:14px; margin-bottom:22px; }
+    .stat-card { text-align:left; padding:16px; border-radius:24px; background:rgba(255,255,255,.78); border:1px solid rgba(255,255,255,.8); box-shadow:0 12px 34px rgba(170,93,121,.08); transition:.2s ease; }
+    .stat-card:hover { transform:translateY(-2px); box-shadow:0 18px 45px rgba(170,93,121,.14); }
+    .stat-top { display:flex; justify-content:space-between; gap:10px; align-items:center; font-weight:900; }
+    .stat-top b { color:var(--rose-dark); }
+    .stat-card p { margin:6px 0 0; color:var(--muted); font-size:14px; }
+    .list { display:grid; gap:22px; padding-bottom:50px; }
+    .section { overflow:hidden; border-radius:30px; background:rgba(255,255,255,.82); border:1px solid rgba(255,255,255,.85); box-shadow:0 18px 50px rgba(170,93,121,.1); }
+    .section-head { display:flex; justify-content:space-between; align-items:center; gap:14px; padding:20px 22px; border-bottom:1px solid #ffe5ec; background:rgba(255,255,255,.58); }
+    .section h2 { margin:0; font-size:22px; letter-spacing:-.02em; }
+    .section-sub { margin:4px 0 0; color:var(--muted); font-size:14px; }
+    .add-category { color:var(--rose-dark); background:#fff0f5; padding:10px 15px; border-radius:999px; font-weight:800; white-space:nowrap; }
+    .items { display:grid; }
+    .item { display:flex; align-items:center; justify-content:space-between; gap:16px; padding:16px 22px; border-top:1px solid #fff1f5; }
+    .item:first-child { border-top:0; }
+    .item label { min-width:0; flex:1; display:flex; align-items:flex-start; gap:14px; cursor:pointer; }
+    .item input[type="checkbox"] { width:20px; height:20px; flex:0 0 auto; margin:2px 0 0; accent-color:var(--rose); box-shadow:none; }
+    .item-title { display:block; font-weight:900; line-height:1.35; word-break:break-word; }
+    .item-meta { display:block; margin-top:5px; color:var(--muted); font-size:14px; line-height:1.55; }
+    .item-meta strong { color:#344054; }
+    .item.done .item-title { color:#9f7183; text-decoration:line-through; }
+    .item-actions { display:flex; gap:8px; flex:0 0 auto; }
+    .small-btn { border-radius:999px; padding:9px 13px; font-size:14px; font-weight:800; }
+    .edit-btn { color:#475467; background:#f2f4f7; }
+    .delete-btn { color:var(--rose-dark); background:#fff0f5; }
+    .empty { display:none; margin-bottom:50px; padding:44px; text-align:center; border-radius:30px; border:1px dashed #f2b8c8; background:rgba(255,255,255,.72); }
+    .empty.show { display:block; }
+    .empty .icon { display:block; font-size:48px; color:#f3a8bd; }
+    .modal { display:none; position:fixed; inset:0; z-index:50; align-items:center; justify-content:center; padding:18px; background:rgba(15,23,42,.38); }
+    .modal.show { display:flex; }
+    .dialog { width:min(560px,100%); padding:24px; border-radius:30px; background:#fff; box-shadow:0 28px 90px rgba(15,23,42,.24); }
+    .dialog-head { display:flex; justify-content:space-between; gap:16px; align-items:flex-start; margin-bottom:18px; }
+    .dialog-title { margin:4px 0 0; font-size:28px; font-weight:950; }
+    .close { width:40px; height:40px; border-radius:999px; color:#667085; background:#f2f4f7; font-size:24px; }
+    .form-grid { display:grid; gap:15px; }
+    label.field { display:grid; gap:8px; color:#344054; font-size:14px; font-weight:800; }
+    .two-col { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+    textarea { resize:vertical; min-height:92px; }
+    .dialog-actions { display:flex; justify-content:flex-end; gap:10px; margin-top:20px; }
+    .cancel { background:#f2f4f7; color:#475467; }
+    .save { background:var(--rose); color:#fff; }
+    .icon { display:inline-flex; align-items:center; justify-content:center; line-height:1; }
+    @media (max-width: 900px) { .hero { grid-template-columns:1fr; padding:24px; } .toolbar { grid-template-columns:1fr; } .category-stats { grid-template-columns:repeat(2,1fr); } }
+    @media (max-width: 640px) { .wrap { width:min(100% - 22px,1180px); } .hero { margin-top:18px; border-radius:26px; } .mini-stats, .two-col { grid-template-columns:1fr; } .category-stats { grid-template-columns:1fr; } .section-head, .item { align-items:stretch; flex-direction:column; } .item-actions { align-self:flex-end; } .add-category { width:100%; } }
   </style>
 </head>
-<body class="min-h-screen bg-rose-50 text-slate-800 soft-grid">
-  <div class="fixed inset-0 -z-10 bg-gradient-to-br from-rose-50 via-pink-50 to-orange-50"></div>
-
-  <header class="mx-auto max-w-7xl px-4 pb-8 pt-8 sm:px-6 lg:px-8">
-    <section class="glass overflow-hidden rounded-[2rem] p-6 sm:p-8 lg:p-10">
-      <div class="grid gap-8 lg:grid-cols-[1.2fr_.8fr] lg:items-center">
-        <div>
-          <p class="mb-3 inline-flex items-center gap-2 rounded-full bg-white/70 px-4 py-2 text-sm font-medium text-rose-700 ring-1 ring-rose-100">
-            <span class="icon text-base">♡</span> Baby 及待产准备
-          </p>
-          <h1 class="text-4xl font-black tracking-tight text-slate-900 sm:text-5xl">孕妇备产清单</h1>
-          <p class="mt-4 max-w-2xl text-base leading-8 text-slate-600 sm:text-lg">把妈妈和宝宝的待产物品整理成可勾选、可搜索、可增删改的网页清单。记录会自动保存在当前浏览器里，再次打开仍能延续进度。</p>
-          <div class="mt-6 flex flex-wrap gap-3">
-            <button id="addTopBtn" class="inline-flex items-center gap-2 rounded-full bg-slate-950 px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-rose-200 transition hover:-translate-y-0.5 hover:bg-rose-700">
-              <span class="icon text-lg">＋</span> 新增物品
-            </button>
-            <button id="resetBtn" class="inline-flex items-center gap-2 rounded-full bg-white/85 px-5 py-3 text-sm font-semibold text-rose-700 ring-1 ring-rose-100 transition hover:-translate-y-0.5 hover:bg-rose-50">
-              <span class="icon text-lg">↻</span> 恢复初始清单
-            </button>
-          </div>
-        </div>
-        <div class="rounded-[1.75rem] bg-gradient-to-br from-white/90 to-rose-100/80 p-5 ring-1 ring-white/80">
-          <div class="mb-4 flex items-center justify-between">
-            <div>
-              <p class="text-sm font-medium text-rose-700">当前完成度</p>
-              <p id="progressText" class="text-3xl font-black text-slate-900">0/0</p>
-            </div>
-            <div class="grid h-16 w-16 place-items-center rounded-2xl bg-white text-rose-600 shadow-inner">
-              <span class="icon text-4xl">✓</span>
-            </div>
-          </div>
-          <div class="h-4 overflow-hidden rounded-full bg-white/80 ring-1 ring-rose-100">
-            <div id="progressBar" class="h-full w-0 rounded-full bg-gradient-to-r from-rose-400 via-pink-500 to-orange-400 transition-all duration-500"></div>
-          </div>
-          <div class="mt-5 grid grid-cols-3 gap-3 text-center">
-            <div class="rounded-2xl bg-white/75 p-3"><p class="text-xs text-slate-500">总计</p><p id="totalCount" class="text-xl font-bold">0</p></div>
-            <div class="rounded-2xl bg-white/75 p-3"><p class="text-xs text-slate-500">已完成</p><p id="doneCount" class="text-xl font-bold text-emerald-600">0</p></div>
-            <div class="rounded-2xl bg-white/75 p-3"><p class="text-xs text-slate-500">待准备</p><p id="todoCount" class="text-xl font-bold text-amber-600">0</p></div>
-          </div>
-        </div>
+<body>
+  <header class="wrap hero">
+    <div>
+      <div class="pill"><span class="icon">♡</span> Baby 及待产准备</div>
+      <h1>孕妇备产清单</h1>
+      <p class="lead">把妈妈和宝宝的待产物品整理成可勾选、可搜索、可增删改的网页清单。记录会自动保存在当前浏览器里，再次打开仍能延续进度。</p>
+      <div class="actions">
+        <button id="addTopBtn" class="btn btn-primary"><span class="icon">＋</span> 新增物品</button>
+        <button id="resetBtn" class="btn btn-soft"><span class="icon">↻</span> 恢复初始清单</button>
       </div>
-    </section>
+    </div>
+    <aside class="progress-card">
+      <div class="progress-head"><div><p class="eyebrow">当前完成度</p><p id="progressText" class="big-number">0/0</p></div><div class="badge">✓</div></div>
+      <div class="bar"><i id="progressBar"></i></div>
+      <div class="mini-stats"><div class="mini"><span>总计</span><strong id="totalCount">0</strong></div><div class="mini"><span>已完成</span><strong id="doneCount">0</strong></div><div class="mini"><span>待准备</span><strong id="todoCount">0</strong></div></div>
+    </aside>
   </header>
 
-  <main class="mx-auto max-w-7xl px-4 pb-12 sm:px-6 lg:px-8">
-    <section class="glass sticky top-3 z-20 mb-6 rounded-3xl p-4">
-      <div class="grid gap-3 lg:grid-cols-[1fr_auto_auto] lg:items-center">
-        <label class="relative block">
-          <span class="icon pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">⌕</span>
-          <input id="searchInput" class="w-full rounded-2xl border border-white/80 bg-white/80 py-3 pl-12 pr-4 text-sm outline-none transition focus:border-rose-300 focus:ring-4 focus:ring-rose-100" placeholder="搜索物品、分类或备注，例如：奶瓶、妈妈、童泰" />
-        </label>
-        <select id="categoryFilter" class="rounded-2xl border border-white/80 bg-white/80 px-4 py-3 text-sm outline-none transition focus:border-rose-300 focus:ring-4 focus:ring-rose-100"></select>
-        <select id="statusFilter" class="rounded-2xl border border-white/80 bg-white/80 px-4 py-3 text-sm outline-none transition focus:border-rose-300 focus:ring-4 focus:ring-rose-100">
-          <option value="all">全部状态</option>
-          <option value="todo">只看待准备</option>
-          <option value="done">只看已完成</option>
-        </select>
-      </div>
+  <main class="wrap">
+    <section class="toolbar">
+      <label class="searchbox"><span>⌕</span><input id="searchInput" placeholder="搜索物品、分类或备注，例如：奶瓶、妈妈、童泰" /></label>
+      <select id="categoryFilter"></select>
+      <select id="statusFilter"><option value="all">全部状态</option><option value="todo">只看待准备</option><option value="done">只看已完成</option></select>
     </section>
-
-    <section id="categoryStats" class="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4"></section>
-    <section id="listRoot" class="space-y-6"></section>
-    <section id="emptyState" class="hidden rounded-[2rem] border border-dashed border-rose-200 bg-white/70 p-10 text-center">
-      <span class="icon text-5xl text-rose-300">⌕</span>
-      <h2 class="mt-3 text-xl font-bold text-slate-900">没有找到匹配物品</h2>
-      <p class="mt-2 text-slate-500">试试换个关键词，或新增一个清单项。</p>
-    </section>
+    <section id="categoryStats" class="category-stats"></section>
+    <section id="listRoot" class="list"></section>
+    <section id="emptyState" class="empty"><span class="icon">⌕</span><h2>没有找到匹配物品</h2><p>试试换个关键词，或新增一个清单项。</p></section>
   </main>
 
-  <div id="itemModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-950/35 p-4">
-    <form id="itemForm" class="w-full max-w-xl rounded-[2rem] bg-white p-6 shadow-2xl shadow-rose-950/20">
-      <div class="mb-5 flex items-center justify-between">
-        <div>
-          <p class="text-sm font-semibold text-rose-600">清单编辑</p>
-          <h2 id="modalTitle" class="text-2xl font-black text-slate-900">新增物品</h2>
-        </div>
-        <button type="button" id="closeModalBtn" class="grid h-10 w-10 place-items-center rounded-full bg-slate-100 text-slate-500 transition hover:bg-rose-100 hover:text-rose-600">
-          <span class="icon">×</span>
-        </button>
-      </div>
+  <div id="itemModal" class="modal">
+    <form id="itemForm" class="dialog">
+      <div class="dialog-head"><div><p class="eyebrow">清单编辑</p><h2 id="modalTitle" class="dialog-title">新增物品</h2></div><button type="button" id="closeModalBtn" class="close">×</button></div>
       <input type="hidden" id="itemId" />
-      <div class="grid gap-4">
-        <label class="grid gap-2 text-sm font-semibold text-slate-700">物品名称
-          <input id="itemName" required class="rounded-2xl border border-slate-200 px-4 py-3 font-normal outline-none transition focus:border-rose-300 focus:ring-4 focus:ring-rose-100" placeholder="例如：160毫升玻璃奶瓶" />
-        </label>
-        <div class="grid gap-4 sm:grid-cols-2">
-          <label class="grid gap-2 text-sm font-semibold text-slate-700">分类
-            <input id="itemCategory" required list="categoryOptions" class="rounded-2xl border border-slate-200 px-4 py-3 font-normal outline-none transition focus:border-rose-300 focus:ring-4 focus:ring-rose-100" placeholder="例如：宝宝部分·吃" />
-            <datalist id="categoryOptions"></datalist>
-          </label>
-          <label class="grid gap-2 text-sm font-semibold text-slate-700">数量/规格
-            <input id="itemQty" class="rounded-2xl border border-slate-200 px-4 py-3 font-normal outline-none transition focus:border-rose-300 focus:ring-4 focus:ring-rose-100" placeholder="例如：×1、S码200片" />
-          </label>
-        </div>
-        <label class="grid gap-2 text-sm font-semibold text-slate-700">备注
-          <textarea id="itemNote" rows="3" class="resize-none rounded-2xl border border-slate-200 px-4 py-3 font-normal outline-none transition focus:border-rose-300 focus:ring-4 focus:ring-rose-100" placeholder="购买地点、用途或提醒"></textarea>
-        </label>
+      <div class="form-grid">
+        <label class="field">物品名称<input id="itemName" required placeholder="例如：160毫升玻璃奶瓶" /></label>
+        <div class="two-col"><label class="field">分类<input id="itemCategory" required list="categoryOptions" placeholder="例如：宝宝部分·吃" /><datalist id="categoryOptions"></datalist></label><label class="field">数量/规格<input id="itemQty" placeholder="例如：×1、S码200片" /></label></div>
+        <label class="field">备注<textarea id="itemNote" rows="3" placeholder="购买地点、用途或提醒"></textarea></label>
       </div>
-      <div class="mt-6 flex justify-end gap-3">
-        <button type="button" id="cancelBtn" class="rounded-full bg-slate-100 px-5 py-3 text-sm font-semibold text-slate-600 transition hover:bg-slate-200">取消</button>
-        <button class="rounded-full bg-rose-600 px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-rose-100 transition hover:bg-rose-700">保存</button>
-      </div>
+      <div class="dialog-actions"><button type="button" id="cancelBtn" class="btn cancel">取消</button><button class="btn save">保存</button></div>
     </form>
   </div>
 
-  <template id="categoryTemplate">
-    <article class="card overflow-hidden rounded-[2rem] bg-white/80 ring-1 ring-white/80">
-      <div class="flex flex-wrap items-center justify-between gap-3 border-b border-rose-100/80 bg-white/65 p-5">
-        <div>
-          <h2 class="category-title text-xl font-black text-slate-900"></h2>
-          <p class="category-sub text-sm text-slate-500"></p>
-        </div>
-        <button class="add-category-btn inline-flex items-center gap-2 rounded-full bg-rose-50 px-4 py-2 text-sm font-semibold text-rose-700 transition hover:bg-rose-100">
-          <span class="icon text-lg">＋</span> 添加到此类
-        </button>
-      </div>
-      <div class="items divide-y divide-rose-50"></div>
-    </article>
-  </template>
-
   <script>
-    const STORAGE_KEY = 'baby-bag-checklist-v1';
+    const STORAGE_KEY = 'baby-bag-checklist-v2';
     const initialItems = [
-      ['童泰实体店购','59码连体衣','厚×1；夹棉×1；四季×1',''],
-      ['童泰实体店购','52码连体衣','夹棉×1；四季×2',''],
-      ['童泰实体店购','52码半背衣','×2',''],
-      ['童泰实体店购','包单','×2 + 1厚',''],
-      ['童泰实体店购','铺床小褥子 + 毛毯','',''],
-      ['童泰实体店购','浴巾','×1',''],
-      ['童泰实体店购','袜子 + 胎帽','袜子×4；胎帽×2',''],
-      ['童泰实体店购','600g包被','',''],
-      ['童泰实体店购','口水巾圈','×2',''],
+      ['童泰实体店购','59码连体衣','厚×1；夹棉×1；四季×1',''],['童泰实体店购','52码连体衣','夹棉×1；四季×2',''],['童泰实体店购','52码半背衣','×2',''],['童泰实体店购','包单','×2 + 1厚',''],['童泰实体店购','铺床小褥子 + 毛毯','',''],['童泰实体店购','浴巾','×1',''],['童泰实体店购','袜子 + 胎帽','袜子×4；胎帽×2',''],['童泰实体店购','600g包被','',''],['童泰实体店购','口水巾圈','×2',''],
       ['妈妈部分','定温烧水壶','',''],['妈妈部分','食品级包装袋','','上面写物品名字'],['妈妈部分','吸奶器','',''],['妈妈部分','储奶袋','',''],['妈妈部分','防溢乳贴','',''],['妈妈部分','收腹带','',''],['妈妈部分','私处冲洗器','',''],['妈妈部分','产褥垫','',''],['妈妈部分','会阴冷敷贴','',''],['妈妈部分','安睡裤','',''],['妈妈部分','吸管水杯','',''],['妈妈部分','月子服','',''],['妈妈部分','月子鞋','',''],['妈妈部分','哺乳内衣','',''],['妈妈部分','待产包','',''],
       ['宝宝部分·吃','160毫升玻璃奶瓶','',''],['宝宝部分·吃','小罐奶粉','',''],['宝宝部分·吃','硅胶奶瓶刷','',''],['宝宝部分·吃','奶瓶清洁剂','',''],['宝宝部分·吃','硅胶小勺','',''],['宝宝部分·吃','AD','',''],['宝宝部分·吃','益生菌拜奥','',''],
       ['宝宝部分·用','安抚奶嘴','',''],['宝宝部分·用','恒温壶','',''],['宝宝部分·用','毯子','',''],['宝宝部分·用','口水巾','4',''],['宝宝部分·用','长条巾','3',''],['宝宝部分·用','防惊跳包巾','',''],['宝宝部分·用','睡袋','',''],['宝宝部分·用','尿布','','防止红屁股'],['宝宝部分·用','酵素洗衣液 + 衣架','',''],['宝宝部分·用','小夜灯','','大灯晚上用伤视力'],
       ['宝宝部分·洗护','洗护二合一','','洗胎脂'],['宝宝部分·洗护','身体乳','','避免干性湿疹'],['宝宝部分·洗护','抚触油','','结合身体乳去胎皮'],['宝宝部分·洗护','护臀膏','','换完尿布用'],['宝宝部分·洗护','面霜','',''],['宝宝部分·洗护','护脐带 + 碘伏棉签','',''],['宝宝部分·洗护','澡盆 + 脸盆','',''],
       ['宝宝部分·消耗品','一次性隔尿垫','M码60-70片',''],['宝宝部分·消耗品','棉柔巾','','频率高，多囤'],['宝宝部分·消耗品','云柔巾','',''],['宝宝部分·消耗品','纸尿裤','7-8斤：S码200片；5-6斤：NB100 + S100',''],['宝宝部分·消耗品','新生儿小剪刀','',''],
       ['大件','消毒柜','',''],['大件','看护器','',''],['大件','婴儿洗衣机','',''],['大件','婴儿车','',''],['大件','婴儿床','',''],['大件','安全座椅','','']
-    ].map((item, index) => ({ id: crypto.randomUUID ? crypto.randomUUID() : `item-${Date.now()}-${index}`, category: item[0], name: item[1], qty: item[2], note: item[3], done: index < 12 || item[1] === '会阴冷敷贴' || item[1] === '吸管水杯' || item[1] === '硅胶小勺', createdAt: Date.now() + index }));
-
+    ].map((item, index) => ({ id: crypto.randomUUID ? crypto.randomUUID() : `item-${Date.now()}-${index}`, category:item[0], name:item[1], qty:item[2], note:item[3], done:index < 12 || ['会阴冷敷贴','吸管水杯','硅胶小勺'].includes(item[1]), createdAt:Date.now()+index }));
     let items = loadItems();
-    const listRoot = document.querySelector('#listRoot');
-    const emptyState = document.querySelector('#emptyState');
-    const searchInput = document.querySelector('#searchInput');
-    const categoryFilter = document.querySelector('#categoryFilter');
-    const statusFilter = document.querySelector('#statusFilter');
-    const modal = document.querySelector('#itemModal');
-    const itemForm = document.querySelector('#itemForm');
-
-    function loadItems() {
-      try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || initialItems; }
-      catch { return initialItems; }
-    }
-    function saveItems() { localStorage.setItem(STORAGE_KEY, JSON.stringify(items)); }
-    function categories() { return [...new Set(items.map(item => item.category))]; }
-    function openModal(item = null, defaultCategory = '') {
-      document.body.classList.add('modal-open');
-      modal.classList.remove('hidden'); modal.classList.add('flex');
-      document.querySelector('#modalTitle').textContent = item ? '编辑物品' : '新增物品';
-      document.querySelector('#itemId').value = item?.id || '';
-      document.querySelector('#itemName').value = item?.name || '';
-      document.querySelector('#itemCategory').value = item?.category || defaultCategory || categories()[0] || '待产清单';
-      document.querySelector('#itemQty').value = item?.qty || '';
-      document.querySelector('#itemNote').value = item?.note || '';
-      setTimeout(() => document.querySelector('#itemName').focus(), 60);
-    }
-    function closeModal() { modal.classList.add('hidden'); modal.classList.remove('flex'); document.body.classList.remove('modal-open'); itemForm.reset(); }
-    function escapeHtml(str = '') { return str.replace(/[&<>'"]/g, tag => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[tag])); }
-    function filteredItems() {
-      const q = searchInput.value.trim().toLowerCase();
-      const category = categoryFilter.value;
-      const status = statusFilter.value;
-      return items.filter(item => {
-        const hit = [item.name, item.category, item.qty, item.note].join(' ').toLowerCase().includes(q);
-        const categoryHit = category === 'all' || item.category === category;
-        const statusHit = status === 'all' || (status === 'done' ? item.done : !item.done);
-        return hit && categoryHit && statusHit;
-      });
-    }
-    function renderControls() {
-      const current = categoryFilter.value || 'all';
-      categoryFilter.innerHTML = '<option value="all">全部分类</option>' + categories().map(c => `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join('');
-      categoryFilter.value = categories().includes(current) ? current : 'all';
-      document.querySelector('#categoryOptions').innerHTML = categories().map(c => `<option value="${escapeHtml(c)}"></option>`).join('');
-    }
-    function renderStats() {
-      const done = items.filter(i => i.done).length;
-      const total = items.length;
-      const pct = total ? Math.round(done / total * 100) : 0;
-      document.querySelector('#progressText').textContent = `${done}/${total}`;
-      document.querySelector('#progressBar').style.width = `${pct}%`;
-      document.querySelector('#totalCount').textContent = total;
-      document.querySelector('#doneCount').textContent = done;
-      document.querySelector('#todoCount').textContent = total - done;
-      document.querySelector('#categoryStats').innerHTML = categories().map(category => {
-        const group = items.filter(i => i.category === category); const groupDone = group.filter(i => i.done).length; const groupPct = group.length ? Math.round(groupDone / group.length * 100) : 0;
-        return `<button data-filter-category="${escapeHtml(category)}" class="card rounded-3xl bg-white/75 p-4 text-left ring-1 ring-white/70"><div class="flex items-center justify-between"><p class="font-bold text-slate-900">${escapeHtml(category)}</p><span class="text-sm font-bold text-rose-600">${groupPct}%</span></div><p class="mt-1 text-sm text-slate-500">${groupDone}/${group.length} 已完成</p><div class="mt-3 h-2 rounded-full bg-rose-100"><div class="h-full rounded-full bg-gradient-to-r from-rose-400 to-orange-300" style="width:${groupPct}%"></div></div></button>`;
-      }).join('');
-    }
-    function renderList() {
-      renderControls(); renderStats();
-      const visible = filteredItems();
-      const grouped = visible.reduce((acc, item) => { (acc[item.category] ||= []).push(item); return acc; }, {});
-      listRoot.innerHTML = '';
-      emptyState.classList.toggle('hidden', visible.length > 0);
-      Object.entries(grouped).forEach(([category, group]) => {
-        const node = document.querySelector('#categoryTemplate').content.cloneNode(true);
-        node.querySelector('.category-title').textContent = category;
-        node.querySelector('.category-sub').textContent = `${group.filter(i => i.done).length}/${group.length} 已完成`;
-        node.querySelector('.add-category-btn').addEventListener('click', () => openModal(null, category));
-        const container = node.querySelector('.items');
-        group.sort((a,b) => a.createdAt - b.createdAt).forEach(item => {
-          const row = document.createElement('div');
-          row.className = `item-row ${item.done ? 'item-done' : ''} flex flex-col gap-3 p-5 sm:flex-row sm:items-center sm:justify-between`;
-          row.innerHTML = `<label class="flex min-w-0 flex-1 cursor-pointer items-start gap-4"><input type="checkbox" ${item.done ? 'checked' : ''} data-action="toggle" data-id="${item.id}" class="mt-1 h-5 w-5 rounded border-rose-200 text-rose-600 focus:ring-rose-400"><span class="min-w-0"><span class="item-title block break-words text-base font-bold text-slate-900">${escapeHtml(item.name)}</span><span class="mt-1 block text-sm text-slate-500">${item.qty ? `<strong class="text-slate-700">${escapeHtml(item.qty)}</strong>` : ''}${item.qty && item.note ? ' · ' : ''}${escapeHtml(item.note || '')}</span></span></label><div class="flex gap-2 self-end sm:self-auto"><button data-action="edit" data-id="${item.id}" class="rounded-full bg-slate-100 px-3 py-2 text-sm font-semibold text-slate-600 transition hover:bg-rose-100 hover:text-rose-700">编辑</button><button data-action="delete" data-id="${item.id}" class="rounded-full bg-rose-50 px-3 py-2 text-sm font-semibold text-rose-700 transition hover:bg-rose-100">删除</button></div>`;
-          container.appendChild(row);
-        });
-        listRoot.appendChild(node);
-      });
-    }
-    document.querySelector('#addTopBtn').addEventListener('click', () => openModal());
-    document.querySelector('#closeModalBtn').addEventListener('click', closeModal);
-    document.querySelector('#cancelBtn').addEventListener('click', closeModal);
-    modal.addEventListener('click', e => { if (e.target === modal) closeModal(); });
-    searchInput.addEventListener('input', renderList); categoryFilter.addEventListener('change', renderList); statusFilter.addEventListener('change', renderList);
-    document.querySelector('#categoryStats').addEventListener('click', e => { const btn = e.target.closest('[data-filter-category]'); if (!btn) return; categoryFilter.value = btn.dataset.filterCategory; renderList(); window.scrollTo({ top: 260, behavior: 'smooth' }); });
-    listRoot.addEventListener('click', e => {
-      const target = e.target.closest('[data-action]'); if (!target) return;
-      const item = items.find(i => i.id === target.dataset.id); if (!item) return;
-      if (target.dataset.action === 'toggle') item.done = target.checked;
-      if (target.dataset.action === 'edit') return openModal(item);
-      if (target.dataset.action === 'delete' && confirm(`确定删除“${item.name}”吗？`)) items = items.filter(i => i.id !== item.id);
-      saveItems(); renderList();
-    });
-    itemForm.addEventListener('submit', e => {
-      e.preventDefault();
-      const id = document.querySelector('#itemId').value;
-      const payload = { name: document.querySelector('#itemName').value.trim(), category: document.querySelector('#itemCategory').value.trim(), qty: document.querySelector('#itemQty').value.trim(), note: document.querySelector('#itemNote').value.trim() };
-      if (!payload.name || !payload.category) return;
-      if (id) items = items.map(item => item.id === id ? { ...item, ...payload } : item);
-      else items.push({ id: crypto.randomUUID ? crypto.randomUUID() : `item-${Date.now()}`, ...payload, done: false, createdAt: Date.now() });
-      saveItems(); closeModal(); renderList();
-    });
-    document.querySelector('#resetBtn').addEventListener('click', () => { if (confirm('恢复初始清单会覆盖当前新增和修改，确定继续吗？')) { items = initialItems; saveItems(); renderList(); } });
+    const $ = s => document.querySelector(s);
+    const listRoot = $('#listRoot'), emptyState = $('#emptyState'), searchInput = $('#searchInput'), categoryFilter = $('#categoryFilter'), statusFilter = $('#statusFilter'), modal = $('#itemModal'), itemForm = $('#itemForm');
+    function loadItems(){ try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || initialItems; } catch { return initialItems; } }
+    function saveItems(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(items)); }
+    function categories(){ return [...new Set(items.map(i => i.category))]; }
+    function escapeHtml(str=''){ return String(str).replace(/[&<>'"]/g, tag => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[tag])); }
+    function openModal(item=null, defaultCategory=''){ document.body.style.overflow='hidden'; modal.classList.add('show'); $('#modalTitle').textContent=item?'编辑物品':'新增物品'; $('#itemId').value=item?.id||''; $('#itemName').value=item?.name||''; $('#itemCategory').value=item?.category||defaultCategory||categories()[0]||'待产清单'; $('#itemQty').value=item?.qty||''; $('#itemNote').value=item?.note||''; setTimeout(()=>$('#itemName').focus(),60); }
+    function closeModal(){ modal.classList.remove('show'); document.body.style.overflow=''; itemForm.reset(); }
+    function filteredItems(){ const q=searchInput.value.trim().toLowerCase(), c=categoryFilter.value, s=statusFilter.value; return items.filter(i => [i.name,i.category,i.qty,i.note].join(' ').toLowerCase().includes(q) && (c==='all'||i.category===c) && (s==='all'||(s==='done'?i.done:!i.done))); }
+    function renderControls(){ const current=categoryFilter.value||'all'; categoryFilter.innerHTML='<option value="all">全部分类</option>'+categories().map(c=>`<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join(''); categoryFilter.value=categories().includes(current)?current:'all'; $('#categoryOptions').innerHTML=categories().map(c=>`<option value="${escapeHtml(c)}"></option>`).join(''); }
+    function renderStats(){ const done=items.filter(i=>i.done).length, total=items.length, pct=total?Math.round(done/total*100):0; $('#progressText').textContent=`${done}/${total}`; $('#progressBar').style.width=`${pct}%`; $('#totalCount').textContent=total; $('#doneCount').textContent=done; $('#todoCount').textContent=total-done; $('#categoryStats').innerHTML=categories().map(c=>{ const g=items.filter(i=>i.category===c), d=g.filter(i=>i.done).length, p=g.length?Math.round(d/g.length*100):0; return `<button class="stat-card" data-filter-category="${escapeHtml(c)}"><div class="stat-top"><span>${escapeHtml(c)}</span><b>${p}%</b></div><p>${d}/${g.length} 已完成</p><div class="bar"><i style="width:${p}%"></i></div></button>`; }).join(''); }
+    function renderList(){ renderControls(); renderStats(); const visible=filteredItems(), grouped=visible.reduce((a,i)=>{(a[i.category] ||= []).push(i); return a;},{}); listRoot.innerHTML=''; emptyState.classList.toggle('show', visible.length===0); Object.entries(grouped).forEach(([category, group])=>{ const section=document.createElement('article'); section.className='section'; section.innerHTML=`<div class="section-head"><div><h2>${escapeHtml(category)}</h2><p class="section-sub">${group.filter(i=>i.done).length}/${group.length} 已完成</p></div><button class="add-category">＋ 添加到此类</button></div><div class="items"></div>`; section.querySelector('.add-category').addEventListener('click',()=>openModal(null,category)); const box=section.querySelector('.items'); group.sort((a,b)=>a.createdAt-b.createdAt).forEach(item=>{ const row=document.createElement('div'); row.className=`item ${item.done?'done':''}`; row.innerHTML=`<label><input type="checkbox" ${item.done?'checked':''} data-action="toggle" data-id="${item.id}"><span><span class="item-title">${escapeHtml(item.name)}</span><span class="item-meta">${item.qty?`<strong>${escapeHtml(item.qty)}</strong>`:''}${item.qty&&item.note?' · ':''}${escapeHtml(item.note||'')}</span></span></label><div class="item-actions"><button class="small-btn edit-btn" data-action="edit" data-id="${item.id}">编辑</button><button class="small-btn delete-btn" data-action="delete" data-id="${item.id}">删除</button></div>`; box.appendChild(row); }); listRoot.appendChild(section); }); }
+    $('#addTopBtn').addEventListener('click',()=>openModal()); $('#closeModalBtn').addEventListener('click',closeModal); $('#cancelBtn').addEventListener('click',closeModal); modal.addEventListener('click',e=>{ if(e.target===modal) closeModal(); }); searchInput.addEventListener('input',renderList); categoryFilter.addEventListener('change',renderList); statusFilter.addEventListener('change',renderList);
+    $('#categoryStats').addEventListener('click', e => { const btn=e.target.closest('[data-filter-category]'); if(!btn) return; categoryFilter.value=btn.dataset.filterCategory; renderList(); window.scrollTo({top:250, behavior:'smooth'}); });
+    listRoot.addEventListener('click', e => { const t=e.target.closest('[data-action]'); if(!t) return; const item=items.find(i=>i.id===t.dataset.id); if(!item) return; if(t.dataset.action==='toggle') item.done=t.checked; if(t.dataset.action==='edit') return openModal(item); if(t.dataset.action==='delete' && confirm(`确定删除“${item.name}”吗？`)) items=items.filter(i=>i.id!==item.id); saveItems(); renderList(); });
+    itemForm.addEventListener('submit', e => { e.preventDefault(); const id=$('#itemId').value; const payload={name:$('#itemName').value.trim(), category:$('#itemCategory').value.trim(), qty:$('#itemQty').value.trim(), note:$('#itemNote').value.trim()}; if(!payload.name||!payload.category) return; if(id) items=items.map(i=>i.id===id?{...i,...payload}:i); else items.push({id:crypto.randomUUID?crypto.randomUUID():`item-${Date.now()}`,...payload,done:false,createdAt:Date.now()}); saveItems(); closeModal(); renderList(); });
+    $('#resetBtn').addEventListener('click',()=>{ if(confirm('恢复初始清单会覆盖当前新增和修改，确定继续吗？')){ items=initialItems; saveItems(); renderList(); } });
     renderList(); saveItems();
   </script>
 </body>
