@@ -38,11 +38,13 @@
     .mini { padding:12px; text-align:center; background:rgba(255,255,255,.78); border-radius:18px; }
     .mini span { display:block; color:var(--muted); font-size:12px; }
     .mini strong { display:block; margin-top:2px; font-size:22px; }
-    .toolbar { position:sticky; top:10px; z-index:10; margin-bottom:14px; padding:12px; border-radius:24px; background:rgba(255,255,255,.82); border:1px solid rgba(255,255,255,.9); box-shadow:0 14px 38px rgba(170,93,121,.12); backdrop-filter:blur(18px); display:grid; grid-template-columns:1fr; gap:10px; }
-    .searchbox { position:relative; }
-    .searchbox span { position:absolute; left:15px; top:50%; transform:translateY(-50%); color:#98a2b3; }
+    .toolbar { position:sticky; top:10px; z-index:10; margin-bottom:12px; padding:8px; border-radius:20px; background:rgba(255,255,255,.86); border:1px solid rgba(255,255,255,.9); box-shadow:0 12px 30px rgba(170,93,121,.1); backdrop-filter:blur(18px); display:flex; align-items:center; gap:6px; }
+    .toolbar select { width:88px; flex:0 0 88px; padding:10px 8px; border-radius:16px; font-size:13px; }
+    .toolbar #statusFilter { width:78px; flex-basis:78px; }
+    .searchbox { position:relative; flex:1 1 auto; min-width:0; }
+    .searchbox span { position:absolute; left:12px; top:50%; transform:translateY(-50%); color:#98a2b3; font-size:13px; }
     input, select, textarea { width:100%; border:1px solid #ffe0e8; outline:0; background:rgba(255,255,255,.9); border-radius:18px; padding:13px 15px; color:#243047; }
-    .searchbox input { padding-left:42px; }
+    .searchbox input { height:42px; padding:10px 10px 10px 32px; border-radius:16px; font-size:13px; }
     input:focus, select:focus, textarea:focus { border-color:#f5a5bd; box-shadow:0 0 0 4px rgba(232,93,139,.12); }
     .category-stats { display:grid; grid-template-columns:repeat(2,1fr); gap:10px; margin-bottom:14px; }
     .stat-card { text-align:left; padding:16px; border-radius:24px; background:rgba(255,255,255,.78); border:1px solid rgba(255,255,255,.8); box-shadow:0 12px 34px rgba(170,93,121,.08); transition:.2s ease; }
@@ -129,9 +131,9 @@
 
   <main class="wrap">
     <section class="toolbar">
-      <label class="searchbox"><span>⌕</span><input id="searchInput" placeholder="搜索物品、分类或备注，例如：奶瓶、妈妈、童泰" /></label>
+      <label class="searchbox"><span>⌕</span><input id="searchInput" placeholder="搜索物品" /></label>
       <select id="categoryFilter"></select>
-      <select id="statusFilter"><option value="all">全部状态</option><option value="todo">只看待准备</option><option value="done">只看已完成</option></select>
+      <select id="statusFilter"><option value="all">状态</option><option value="todo">待准备</option><option value="done">已完成</option></select>
     </section>
     <section id="categoryStats" class="category-stats"></section>
     <section id="listRoot" class="list"></section>
@@ -144,8 +146,8 @@
       <input type="hidden" id="itemId" />
       <div class="form-grid">
         <label class="field">物品名称<input id="itemName" required placeholder="例如：160毫升玻璃奶瓶" /></label>
-        <div class="two-col"><label class="field">数量/规格<input id="itemQty" placeholder="例如：×1、S码200片" /></label><label class="field">切换到已有分类<select id="categorySelect"></select></label></div>
-        <label class="field category-grid">分类名称<input id="itemCategory" required placeholder="可输入新分类，或从上方选择已有分类" /></label>
+        <div class="two-col"><label class="field">数量/规格<input id="itemQty" placeholder="例如：×1、S码200片" /></label><label class="field">分类<select id="categorySelect"></select></label></div>
+        <input id="itemCategory" type="hidden" required />
         <label class="field">备注<textarea id="itemNote" rows="3" placeholder="购买地点、用途或提醒"></textarea></label>
         <label class="field image-upload">物品图片（可多选，保存后横向展示在物品下方）
           <input id="itemImage" type="file" accept="image/*" multiple />
@@ -200,7 +202,7 @@
     }
     function categories(){ return [...new Set(items.map(i => i.category).filter(Boolean))]; }
     function escapeHtml(str=''){ return String(str).replace(/[&<>'"]/g, tag => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[tag])); }
-    function renderCategorySelect(selected='') { categorySelect.innerHTML = '<option value="">选择已有分类</option>' + categories().map(c => `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join(''); categorySelect.value = categories().includes(selected) ? selected : ''; }
+    function renderCategorySelect(selected='') { categorySelect.innerHTML = categories().map(c => `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join('') + '<option value="__new__">＋ 新增分类</option>'; categorySelect.value = categories().includes(selected) ? selected : '__new__'; }
     function normalizeImages(item){ return Array.isArray(item?.images) ? item.images : (item?.image ? [item.image] : []); }
     function updateImagePreview(){ imagePreview.innerHTML = currentImages.map((src, index) => `<img class="image-preview" src="${src}" alt="第${index + 1}张预览图">`).join(''); removeImageBtn.style.display = currentImages.length ? 'inline-block' : 'none'; }
     function openModal(item=null, defaultCategory=''){
@@ -210,7 +212,7 @@
     }
     function closeModal(){ modal.classList.remove('show'); document.body.style.overflow=''; itemForm.reset(); currentImages=[]; updateImagePreview(); }
     function filteredItems(){ const q=searchInput.value.trim().toLowerCase(), c=categoryFilter.value, s=statusFilter.value; return items.filter(i => [i.name,i.category,i.qty,i.note].join(' ').toLowerCase().includes(q) && (c==='all'||i.category===c) && (s==='all'||(s==='done'?i.done:!i.done))); }
-    function renderControls(){ const current=categoryFilter.value||'all'; categoryFilter.innerHTML='<option value="all">全部分类</option>'+categories().map(c=>`<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join(''); categoryFilter.value=categories().includes(current)?current:'all'; }
+    function renderControls(){ const current=categoryFilter.value||'all'; categoryFilter.innerHTML='<option value="all">分类</option>'+categories().map(c=>`<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join(''); categoryFilter.value=categories().includes(current)?current:'all'; }
     function renderStats(){ const done=items.filter(i=>i.done).length, total=items.length, pct=total?Math.round(done/total*100):0; $('#progressText').textContent=`${done}/${total}`; $('#progressBar').style.width=`${pct}%`; $('#totalCount').textContent=total; $('#doneCount').textContent=done; $('#todoCount').textContent=total-done; $('#categoryStats').innerHTML=categories().map(c=>{ const g=items.filter(i=>i.category===c), d=g.filter(i=>i.done).length, p=g.length?Math.round(d/g.length*100):0; return `<button class="stat-card" data-filter-category="${escapeHtml(c)}"><div class="stat-top"><span>${escapeHtml(c)}</span><b>${p}%</b></div><p>${d}/${g.length} 已完成</p><div class="bar"><i style="width:${p}%"></i></div></button>`; }).join(''); }
     function renderList(){
       renderControls(); renderStats(); const visible=filteredItems(), grouped=visible.reduce((a,i)=>{(a[i.category] ||= []).push(i); return a;},{}); listRoot.innerHTML=''; emptyState.classList.toggle('show', visible.length===0);
@@ -232,7 +234,7 @@
     function renameCategory(oldName){ const next = prompt('修改分类名称', oldName); if (!next || next.trim() === oldName) return; const name = next.trim(); items = items.map(item => item.category === oldName ? { ...item, category:name } : item); saveItems(); renderList(); }
     function closeSwipeRows(except=null){ document.querySelectorAll('.swipe-row.open').forEach(row => { if(row !== except) row.classList.remove('open'); }); }
     function fileToCompressedDataUrl(file){ return new Promise((resolve, reject) => { const reader = new FileReader(); reader.onerror = reject; reader.onload = () => { const img = new Image(); img.onerror = reject; img.onload = () => { const max = 900; const scale = Math.min(1, max / Math.max(img.width, img.height)); const canvas = document.createElement('canvas'); canvas.width = Math.max(1, Math.round(img.width * scale)); canvas.height = Math.max(1, Math.round(img.height * scale)); canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height); resolve(canvas.toDataURL('image/jpeg', 0.82)); }; img.src = reader.result; }; reader.readAsDataURL(file); }); }
-    $('#addTopBtn').addEventListener('click',()=>openModal()); $('#closeModalBtn').addEventListener('click',closeModal); $('#cancelBtn').addEventListener('click',closeModal); modal.addEventListener('click',e=>{ if(e.target===modal) closeModal(); }); searchInput.addEventListener('input',renderList); categoryFilter.addEventListener('change',renderList); statusFilter.addEventListener('change',renderList); categorySelect.addEventListener('change', e => { if(e.target.value) $('#itemCategory').value = e.target.value; });
+    $('#addTopBtn').addEventListener('click',()=>openModal()); $('#closeModalBtn').addEventListener('click',closeModal); $('#cancelBtn').addEventListener('click',closeModal); modal.addEventListener('click',e=>{ if(e.target===modal) closeModal(); }); searchInput.addEventListener('input',renderList); categoryFilter.addEventListener('change',renderList); statusFilter.addEventListener('change',renderList); categorySelect.addEventListener('change', e => { if(e.target.value === '__new__') { const name = prompt('请输入新分类名称'); if(name && name.trim()) { $('#itemCategory').value = name.trim(); const option = new Option(name.trim(), name.trim()); categorySelect.add(option, categorySelect.options.length - 1); categorySelect.value = name.trim(); } else { categorySelect.value = $('#itemCategory').value || categories()[0] || '__new__'; } } else { $('#itemCategory').value = e.target.value; } });
     imageInput.addEventListener('change', async e => { const files=Array.from(e.target.files || []); if(!files.length) return; const uploaded = await Promise.all(files.map(fileToCompressedDataUrl)); currentImages = currentImages.concat(uploaded); updateImagePreview(); }); removeImageBtn.addEventListener('click', () => { currentImages=[]; imageInput.value=''; updateImagePreview(); });
     $('#categoryStats').addEventListener('click', e => { const btn=e.target.closest('[data-filter-category]'); if(!btn) return; categoryFilter.value=btn.dataset.filterCategory; renderList(); window.scrollTo({top:250, behavior:'smooth'}); });
     listRoot.addEventListener('pointerdown', e => { const row=e.target.closest('.swipe-row'); if(!row || e.target.closest('button,input')) return; activeRow=row; startX=e.clientX; });
