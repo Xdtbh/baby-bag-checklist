@@ -1,0 +1,12 @@
+{
+  "database": {
+    "checklist_items": {
+      "read": "auth != null",
+      "write": "auth != null"
+    }
+  },
+  "storage": {
+    "read": "auth != null",
+    "write": "auth != null"
+  }
+}

@@ -159,13 +159,17 @@
     </form>
   </div>
 
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="./config.js"></script>
   <script>
-    const SUPABASE_URL = window.SUPABASE_URL || 'https://ynxmaiwuepenquyopcql.supabase.co';
-    const SUPABASE_ANON_KEY = window.SUPABASE_ANON_KEY || '';
-    const supabaseClient = window.supabase && SUPABASE_ANON_KEY ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
-    const STORAGE_KEY = 'baby-bag-checklist-supabase-cache-v1';
+    const CLOUDBASE_ENV_ID = window.CLOUDBASE_ENV_ID || '';
+    const CLOUDBASE_REGION = window.CLOUDBASE_REGION || 'ap-shanghai';
+    const CLOUDBASE_SDK_URL = 'https://static.cloudbase.net/cloudbase-js-sdk/2.0.0/cloudbase.full.js';
+    const STATE_COLLECTION = window.CLOUDBASE_COLLECTION || 'checklist_items';
+    const STATE_DOC_ID = 'shared';
+    const STORAGE_KEY = 'baby-bag-checklist-cloudbase-cache-v1';
+    let cloudbaseApp = null;
+    let cloudbaseSdkPromise = null;
+    const imageUrlCache = new Map();
     const initialItems = [
       ['童泰实体店购','59码连体衣','厚×1；夹棉×1；四季×1',''],['童泰实体店购','52码连体衣','夹棉×1；四季×2',''],['童泰实体店购','52码半背衣','×2',''],['童泰实体店购','包单','×2 + 1厚',''],['童泰实体店购','铺床小褥子 + 毛毯','',''],['童泰实体店购','浴巾','×1',''],['童泰实体店购','袜子 + 胎帽','袜子×4；胎帽×2',''],['童泰实体店购','600g包被','',''],['童泰实体店购','口水巾圈','×2',''],
       ['妈妈部分','定温烧水壶','',''],['妈妈部分','食品级包装袋','','上面写物品名字'],['妈妈部分','吸奶器','',''],['妈妈部分','储奶袋','',''],['妈妈部分','防溢乳贴','',''],['妈妈部分','收腹带','',''],['妈妈部分','私处冲洗器','',''],['妈妈部分','产褥垫','',''],['妈妈部分','会阴冷敷贴','',''],['妈妈部分','安睡裤','',''],['妈妈部分','吸管水杯','',''],['妈妈部分','月子服','',''],['妈妈部分','月子鞋','',''],['妈妈部分','哺乳内衣','',''],['妈妈部分','待产包','',''],
@@ -176,7 +180,7 @@
       ['大件','消毒柜','',''],['大件','看护器','',''],['大件','婴儿洗衣机','',''],['大件','婴儿车','',''],['大件','婴儿床','',''],['大件','安全座椅','','']
     ].map((item, index) => ({ id: crypto.randomUUID ? crypto.randomUUID() : `item-${Date.now()}-${index}`, category:item[0], name:item[1], qty:item[2], note:item[3], done:index < 12 || ['会阴冷敷贴','吸管水杯','硅胶小勺'].includes(item[1]), createdAt:Date.now()+index }));
     let items = [];
-    let lastCloudUpdatedAt = 0;
+    let cloudbaseReady = null;
     let saveTimer = null;
     let startX = 0;
     let activeRow = null;
@@ -185,54 +189,92 @@
     const listRoot = $('#listRoot'), emptyState = $('#emptyState'), searchInput = $('#searchInput'), categoryFilter = $('#categoryFilter'), statusFilter = $('#statusFilter'), modal = $('#itemModal'), itemForm = $('#itemForm'), imageInput = $('#itemImage'), imagePreview = $('#imagePreview'), removeImageBtn = $('#removeImageBtn'), categorySelect = $('#categorySelect');
     function loadItems(){ try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || initialItems; } catch { return initialItems; } }
     function setSyncStatus(text){ const node = $('#syncStatus'); if (node) node.textContent = text; }
-    function toDbItem(item){ return { id:item.id, category:item.category, name:item.name, qty:item.qty || '', note:item.note || '', done:Boolean(item.done), images:Array.isArray(item.images) ? item.images : (item.image ? [item.image] : []), created_at_ms:item.createdAt || Date.now(), updated_at:new Date().toISOString() }; }
-    function fromDbItem(row){ return { id:row.id, category:row.category, name:row.name, qty:row.qty || '', note:row.note || '', done:Boolean(row.done), images:Array.isArray(row.images) ? row.images : [], createdAt:row.created_at_ms || Date.now() }; }
-    async function fetchSupabaseItems(){
-      if (!supabaseClient) throw new Error('Supabase 未配置 anon key');
-      const { data, error } = await supabaseClient.from('checklist_items').select('*').order('created_at_ms', { ascending:true });
-      if (error) throw error;
-      return data || [];
-    }
-    async function replaceSupabaseItems(nextItems){
-      if (!supabaseClient) throw new Error('Supabase 未配置 anon key');
-      const { error: deleteError } = await supabaseClient.from('checklist_items').delete().neq('id', '__never__');
-      if (deleteError) throw deleteError;
-      if (nextItems.length) {
-        const { error: insertError } = await supabaseClient.from('checklist_items').insert(nextItems.map(toDbItem));
-        if (insertError) throw insertError;
+    function toCloudItem(item){ return { id:item.id, category:item.category, name:item.name, qty:item.qty || '', note:item.note || '', done:Boolean(item.done), images:normalizeImages(item), createdAt:item.createdAt || Date.now(), updatedAt:Date.now() }; }
+    function fromCloudItem(item){ return { id:item.id, category:item.category, name:item.name, qty:item.qty || '', note:item.note || '', done:Boolean(item.done), images:normalizeImages(item), createdAt:item.createdAt || Date.now() }; }
+    function loadCloudbaseSdk(){
+      if (window.cloudbase) return Promise.resolve();
+      if (!cloudbaseSdkPromise) {
+        cloudbaseSdkPromise = new Promise((resolve, reject) => {
+          const script = document.createElement('script');
+          script.src = CLOUDBASE_SDK_URL;
+          script.onload = resolve;
+          script.onerror = () => reject(new Error('CloudBase SDK 加载失败'));
+          document.head.appendChild(script);
+        });
       }
+      return cloudbaseSdkPromise;
+    }
+    async function ensureCloudbase(){
+      if (!CLOUDBASE_ENV_ID) throw new Error('CloudBase 环境 ID 未配置');
+      await loadCloudbaseSdk();
+      if (!cloudbaseApp) cloudbaseApp = window.cloudbase.init({ env: CLOUDBASE_ENV_ID, region: CLOUDBASE_REGION });
+      if (!cloudbaseReady) {
+        cloudbaseReady = (async () => {
+          const auth = cloudbaseApp.auth({ persistence: 'local' });
+          const loginState = await auth.getLoginState().catch(() => null);
+          if (!loginState) {
+            if (auth.anonymousAuthProvider) await auth.anonymousAuthProvider().signIn();
+            else if (auth.signInAnonymously) await auth.signInAnonymously();
+          }
+          return cloudbaseApp.database();
+        })();
+      }
+      return cloudbaseReady;
+    }
+    async function fetchCloudItems(){
+      const db = await ensureCloudbase();
+      const result = await db.collection(STATE_COLLECTION).doc(STATE_DOC_ID).get();
+      const doc = Array.isArray(result.data) ? result.data[0] : result.data;
+      return Array.isArray(doc?.items) ? doc.items.map(fromCloudItem) : [];
+    }
+    async function saveCloudItems(nextItems){
+      const db = await ensureCloudbase();
+      await db.collection(STATE_COLLECTION).doc(STATE_DOC_ID).set({ items:nextItems.map(toCloudItem), updatedAt:Date.now(), version:'cloudbase-v1' });
     }
     async function loadFromCloud(){
       setSyncStatus('同步中');
       try {
-        const rows = await fetchSupabaseItems();
-        if (!rows.length) { items = initialItems; await replaceSupabaseItems(items); }
-        else { items = rows.map(fromDbItem); }
-        lastCloudUpdatedAt = Date.now(); localStorage.setItem(STORAGE_KEY, JSON.stringify(items)); setSyncStatus('已同步');
-      } catch (error) { console.warn('读取 Supabase 清单失败，暂用本地缓存', error); items = loadItems(); setSyncStatus('离线缓存'); }
+        const cloudItems = await fetchCloudItems();
+        if (!cloudItems.length) { items = initialItems; await saveCloudItems(items); }
+        else { items = cloudItems; }
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(items)); setSyncStatus('已同步');
+      } catch (error) { console.warn('读取 CloudBase 清单失败，暂用本地缓存', error); items = loadItems(); setSyncStatus(CLOUDBASE_ENV_ID ? '离线缓存' : '待配置'); }
       renderList();
     }
     async function refreshFromCloud(){
       try {
-        const rows = await fetchSupabaseItems();
-        const nextItems = rows.map(fromDbItem); const nextSnapshot = JSON.stringify(nextItems);
-        if (nextSnapshot !== JSON.stringify(items)) { items = nextItems; localStorage.setItem(STORAGE_KEY, nextSnapshot); setSyncStatus('已更新'); renderList(); }
-      } catch (error) { console.warn('刷新 Supabase 清单失败', error); }
+        const cloudItems = await fetchCloudItems();
+        const nextSnapshot = JSON.stringify(cloudItems);
+        if (cloudItems.length && nextSnapshot !== JSON.stringify(items)) { items = cloudItems; localStorage.setItem(STORAGE_KEY, nextSnapshot); setSyncStatus('已更新'); renderList(); }
+      } catch (error) { console.warn('刷新 CloudBase 清单失败', error); }
     }
     function saveItems(){
       localStorage.setItem(STORAGE_KEY, JSON.stringify(items)); setSyncStatus('保存中'); clearTimeout(saveTimer);
-      saveTimer = setTimeout(async () => { try { await replaceSupabaseItems(items); lastCloudUpdatedAt = Date.now(); setSyncStatus('已同步'); } catch (error) { console.warn('保存 Supabase 清单失败', error); setSyncStatus('保存失败'); } }, 250);
+      saveTimer = setTimeout(async () => { try { await saveCloudItems(items); setSyncStatus('已同步'); } catch (error) { console.warn('保存 CloudBase 清单失败', error); setSyncStatus(CLOUDBASE_ENV_ID ? '保存失败' : '待配置'); } }, 250);
     }
     async function resetCloud(){
       setSyncStatus('恢复中'); items = initialItems; localStorage.setItem(STORAGE_KEY, JSON.stringify(items)); renderList();
-      try { await replaceSupabaseItems(items); lastCloudUpdatedAt = Date.now(); setSyncStatus('已同步'); }
-      catch (error) { console.warn('恢复 Supabase 清单失败', error); setSyncStatus('保存失败'); }
+      try { await saveCloudItems(items); setSyncStatus('已同步'); }
+      catch (error) { console.warn('恢复 CloudBase 清单失败', error); setSyncStatus(CLOUDBASE_ENV_ID ? '保存失败' : '待配置'); }
     }
     function categories(){ return [...new Set(items.map(i => i.category).filter(Boolean))]; }
     function escapeHtml(str=''){ return String(str).replace(/[&<>'"]/g, tag => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[tag])); }
+    function isCloudFile(src=''){ return String(src).startsWith('cloud://'); }
+    function imageSrc(src){ return isCloudFile(src) ? (imageUrlCache.get(src) || '') : src; }
     function renderCategorySelect(selected='') { categorySelect.innerHTML = categories().map(c => `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join('') + '<option value="__new__">＋ 新增分类</option>'; categorySelect.value = categories().includes(selected) ? selected : '__new__'; }
     function normalizeImages(item){ return Array.isArray(item?.images) ? item.images : (item?.image ? [item.image] : []); }
-    function updateImagePreview(){ imagePreview.innerHTML = currentImages.map((src, index) => `<img class="image-preview" src="${src}" alt="第${index + 1}张预览图">`).join(''); removeImageBtn.style.display = currentImages.length ? 'inline-block' : 'none'; }
+    async function resolveCloudImageUrls(){
+      if (!CLOUDBASE_ENV_ID) return;
+      const fileIDs = [...new Set(items.flatMap(normalizeImages).filter(src => isCloudFile(src) && !imageUrlCache.has(src)))];
+      if (!fileIDs.length) return;
+      try {
+        await ensureCloudbase();
+        const result = await cloudbaseApp.getTempFileURL({ fileList:fileIDs.map(fileID => ({ fileID, maxAge:7200 })) });
+        (result.fileList || []).forEach(file => { if (file.code === 'SUCCESS' && file.tempFileURL) imageUrlCache.set(file.fileID, file.tempFileURL); });
+        renderList();
+      } catch (error) { console.warn('获取 CloudBase 图片链接失败', error); }
+    }
+    function updateImagePreview(){ imagePreview.innerHTML = currentImages.map((src, index) => `<img class="image-preview" src="${escapeHtml(imageSrc(src) || src)}" alt="第${index + 1}张预览图">`).join(''); removeImageBtn.style.display = currentImages.length ? 'inline-block' : 'none'; resolveCloudImageUrls(); }
     function openModal(item=null, defaultCategory=''){
       document.body.style.overflow='hidden'; modal.classList.add('show'); $('#modalTitle').textContent=item?'编辑物品':'新增物品';
       const selectedCategory = item?.category || defaultCategory || categories()[0] || '待产清单';
@@ -252,18 +294,33 @@
         group.sort((a,b)=>a.createdAt-b.createdAt).forEach(item=>{
           const row=document.createElement('div'); row.className=`swipe-row ${item.done?'done':''}`; row.dataset.id = item.id;
           const imageList = normalizeImages(item);
-          const imageHtml = imageList.length ? `<div class="thumb-row">${imageList.map((src, index) => `<img class="thumb" src="${src}" alt="${escapeHtml(item.name)}图片${index + 1}">`).join('')}</div>` : '';
+          const imageHtml = imageList.length ? `<div class="thumb-row">${imageList.map((src, index) => `<img class="thumb" src="${escapeHtml(imageSrc(src) || src)}" alt="${escapeHtml(item.name)}图片${index + 1}">`).join('')}</div>` : '';
           row.innerHTML=`<div class="swipe-actions"><button class="edit-btn" data-action="edit" data-id="${item.id}">编辑</button><button class="delete-btn" data-action="delete" data-id="${item.id}">删除</button></div><div class="item"><label><input type="checkbox" ${item.done?'checked':''} data-action="toggle" data-id="${item.id}"><span class="item-content"><span class="item-main"><span><span class="item-title">${escapeHtml(item.name)}</span><span class="item-meta">${item.qty?`<strong>${escapeHtml(item.qty)}</strong>`:''}${item.qty&&item.note?' · ':''}${escapeHtml(item.note||'')}</span></span></span>${imageHtml}</span></label></div>`;
           box.appendChild(row);
         });
         listRoot.appendChild(section);
       });
+      resolveCloudImageUrls();
     }
     function renameCategory(oldName){ const next = prompt('修改分类名称', oldName); if (!next || next.trim() === oldName) return; const name = next.trim(); items = items.map(item => item.category === oldName ? { ...item, category:name } : item); saveItems(); renderList(); }
     function closeSwipeRows(except=null){ document.querySelectorAll('.swipe-row.open').forEach(row => { if(row !== except) row.classList.remove('open'); }); }
     function fileToCompressedDataUrl(file){ return new Promise((resolve, reject) => { const reader = new FileReader(); reader.onerror = reject; reader.onload = () => { const img = new Image(); img.onerror = reject; img.onload = () => { const max = 900; const scale = Math.min(1, max / Math.max(img.width, img.height)); const canvas = document.createElement('canvas'); canvas.width = Math.max(1, Math.round(img.width * scale)); canvas.height = Math.max(1, Math.round(img.height * scale)); canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height); resolve(canvas.toDataURL('image/jpeg', 0.82)); }; img.src = reader.result; }; reader.readAsDataURL(file); }); }
+    async function uploadImage(file){
+      if (!CLOUDBASE_ENV_ID) return fileToCompressedDataUrl(file);
+      try {
+        await ensureCloudbase();
+        const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+        const cloudPath = `baby-bag/${Date.now()}-${Math.random().toString(16).slice(2)}-${safeName}`;
+        const result = await cloudbaseApp.uploadFile({ cloudPath, filePath:file });
+        return result.fileID;
+      } catch (error) {
+        console.warn('上传 CloudBase 图片失败，改用本地压缩图片', error);
+        setSyncStatus('图片本地');
+        return fileToCompressedDataUrl(file);
+      }
+    }
     $('#addTopBtn').addEventListener('click',()=>openModal()); $('#closeModalBtn').addEventListener('click',closeModal); $('#cancelBtn').addEventListener('click',closeModal); modal.addEventListener('click',e=>{ if(e.target===modal) closeModal(); }); searchInput.addEventListener('input',renderList); categoryFilter.addEventListener('change',renderList); statusFilter.addEventListener('change',renderList); categorySelect.addEventListener('change', e => { if(e.target.value === '__new__') { const name = prompt('请输入新分类名称'); if(name && name.trim()) { $('#itemCategory').value = name.trim(); const option = new Option(name.trim(), name.trim()); categorySelect.add(option, categorySelect.options.length - 1); categorySelect.value = name.trim(); } else { categorySelect.value = $('#itemCategory').value || categories()[0] || '__new__'; } } else { $('#itemCategory').value = e.target.value; } });
-    imageInput.addEventListener('change', async e => { const files=Array.from(e.target.files || []); if(!files.length) return; const uploaded = await Promise.all(files.map(fileToCompressedDataUrl)); currentImages = currentImages.concat(uploaded); updateImagePreview(); }); removeImageBtn.addEventListener('click', () => { currentImages=[]; imageInput.value=''; updateImagePreview(); });
+    imageInput.addEventListener('change', async e => { const files=Array.from(e.target.files || []); if(!files.length) return; setSyncStatus(CLOUDBASE_ENV_ID ? '上传图片' : '处理图片'); const uploaded = await Promise.all(files.map(uploadImage)); currentImages = currentImages.concat(uploaded); updateImagePreview(); setSyncStatus(CLOUDBASE_ENV_ID ? '待保存' : '待配置'); }); removeImageBtn.addEventListener('click', () => { currentImages=[]; imageInput.value=''; updateImagePreview(); });
     $('#categoryStats').addEventListener('click', e => { const btn=e.target.closest('[data-filter-category]'); if(!btn) return; categoryFilter.value=btn.dataset.filterCategory; renderList(); window.scrollTo({top:250, behavior:'smooth'}); });
     listRoot.addEventListener('pointerdown', e => { const row=e.target.closest('.swipe-row'); if(!row || e.target.closest('button,input')) return; activeRow=row; startX=e.clientX; });
     listRoot.addEventListener('pointerup', e => { if(!activeRow) return; const dx=e.clientX-startX; if(dx < -35) { closeSwipeRows(activeRow); activeRow.classList.add('open'); } else if(dx > 25 || Math.abs(dx) < 8) { activeRow.classList.remove('open'); } activeRow=null; });
