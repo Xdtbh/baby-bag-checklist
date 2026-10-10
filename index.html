@@ -178,16 +178,17 @@
       ['宝宝部分·洗护','洗护二合一','','洗胎脂'],['宝宝部分·洗护','身体乳','','避免干性湿疹'],['宝宝部分·洗护','抚触油','','结合身体乳去胎皮'],['宝宝部分·洗护','护臀膏','','换完尿布用'],['宝宝部分·洗护','面霜','',''],['宝宝部分·洗护','护脐带 + 碘伏棉签','',''],['宝宝部分·洗护','澡盆 + 脸盆','',''],
       ['宝宝部分·消耗品','一次性隔尿垫','M码60-70片',''],['宝宝部分·消耗品','棉柔巾','','频率高，多囤'],['宝宝部分·消耗品','云柔巾','',''],['宝宝部分·消耗品','纸尿裤','7-8斤：S码200片；5-6斤：NB100 + S100',''],['宝宝部分·消耗品','新生儿小剪刀','',''],
       ['大件','消毒柜','',''],['大件','看护器','',''],['大件','婴儿洗衣机','',''],['大件','婴儿车','',''],['大件','婴儿床','',''],['大件','安全座椅','','']
-    ].map((item, index) => ({ id: crypto.randomUUID ? crypto.randomUUID() : `item-${Date.now()}-${index}`, category:item[0], name:item[1], qty:item[2], note:item[3], done:index < 12 || ['会阴冷敷贴','吸管水杯','硅胶小勺'].includes(item[1]), createdAt:Date.now()+index }));
+    ].map((item, index) => ({ id: `seed-${String(index + 1).padStart(3, '0')}`, category:item[0], name:item[1], qty:item[2], note:item[3], done:index < 12 || ['会阴冷敷贴','吸管水杯','硅胶小勺'].includes(item[1]), images:[], createdAt:1700000000000+index, updatedAt:1700000000000+index, deleted:false }));
     let items = [];
     let cloudbaseReady = null;
-    let saveTimer = null;
+    let remoteBusy = false;
     let startX = 0;
     let activeRow = null;
     let currentImages = [];
     const $ = s => document.querySelector(s);
     const listRoot = $('#listRoot'), emptyState = $('#emptyState'), searchInput = $('#searchInput'), categoryFilter = $('#categoryFilter'), statusFilter = $('#statusFilter'), modal = $('#itemModal'), itemForm = $('#itemForm'), imageInput = $('#itemImage'), imagePreview = $('#imagePreview'), removeImageBtn = $('#removeImageBtn'), categorySelect = $('#categorySelect');
     function loadItems(){ try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || initialItems; } catch { return initialItems; } }
+    function cacheItems(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(items)); }
     function setSyncStatus(text){ const node = $('#syncStatus'); if (node) node.textContent = text; }
     function cloudErrorStatus(error, fallback='保存失败'){
       const message = String(error?.message || error || '');
@@ -197,8 +198,24 @@
       if (message.includes('not exist') || message.includes('404')) return '集合不存在';
       return fallback;
     }
-    function toCloudItem(item){ return { id:item.id, category:item.category, name:item.name, qty:item.qty || '', note:item.note || '', done:Boolean(item.done), images:normalizeImages(item), createdAt:item.createdAt || Date.now(), updatedAt:Date.now(), deleted:false }; }
-    function fromCloudItem(item){ return { id:item.id || item._id, category:item.category, name:item.name, qty:item.qty || '', note:item.note || '', done:Boolean(item.done), images:normalizeImages(item), createdAt:item.createdAt || Date.now(), updatedAt:item.updatedAt || 0 }; }
+    function newItemId(){ return crypto.randomUUID ? crypto.randomUUID() : `item-${Date.now()}-${Math.random().toString(16).slice(2)}`; }
+    function sortItems(list){ return [...list].sort((a,b)=>(a.createdAt||0)-(b.createdAt||0) || String(a.name).localeCompare(String(b.name), 'zh-CN')); }
+    function normalizeItem(item, stamp=Date.now()){
+      return {
+        id:item.id || item._id || newItemId(),
+        category:(item.category || '待产清单').trim(),
+        name:(item.name || '').trim(),
+        qty:item.qty || '',
+        note:item.note || '',
+        done:Boolean(item.done),
+        images:normalizeImages(item),
+        createdAt:item.createdAt || stamp,
+        updatedAt:item.updatedAt || stamp,
+        deleted:Boolean(item.deleted)
+      };
+    }
+    function toCloudItem(item){ const next = normalizeItem(item, Date.now()); delete next._id; return next; }
+    function fromCloudItem(item){ return normalizeItem({ ...item, id:item.id || item._id }); }
     function loadCloudbaseSdk(){
       if (window.cloudbase) return Promise.resolve();
       if (!cloudbaseSdkPromise) {
@@ -229,56 +246,66 @@
       }
       return cloudbaseReady;
     }
-    async function fetchCloudItems(){
-      const db = await ensureCloudbase();
-      const collection = db.collection(STATE_COLLECTION);
-      let docs = [];
-      try {
-        const result = await collection.limit(1000).get();
-        docs = Array.isArray(result.data) ? result.data : [];
-      } catch (error) {
-        const message = String(error?.message || error || '');
-        if (!(error?.code === 'DOCUMENT_NOT_FOUND' || message.includes('Document not found'))) throw error;
-      }
+    async function getCollection(){ const db = await ensureCloudbase(); return db.collection(STATE_COLLECTION); }
+    async function listRemoteItems(){
+      const collection = await getCollection();
+      const result = await collection.limit(1000).get();
+      const docs = Array.isArray(result.data) ? result.data : [];
       const itemDocs = docs.filter(doc => doc && doc._id !== STATE_DOC_ID && !Array.isArray(doc.items) && !doc.deleted);
-      if (itemDocs.length) return itemDocs.map(fromCloudItem).filter(item => item.id && item.name);
+      if (itemDocs.length) return sortItems(itemDocs.map(fromCloudItem).filter(item => item.id && item.name));
       const legacyDoc = docs.find(doc => doc && (doc._id === STATE_DOC_ID || Array.isArray(doc.items)));
-      return Array.isArray(legacyDoc?.items) ? legacyDoc.items.map(fromCloudItem).filter(item => item.id && item.name) : [];
+      return Array.isArray(legacyDoc?.items) ? sortItems(legacyDoc.items.map(fromCloudItem).filter(item => item.id && item.name)) : [];
     }
-    async function saveCloudItems(nextItems){
-      const db = await ensureCloudbase();
-      const collection = db.collection(STATE_COLLECTION);
-      const nextIds = new Set(nextItems.map(item => item.id));
-      const existing = await fetchCloudItems().catch(() => []);
-      await Promise.all(nextItems.map(item => collection.doc(item.id).set({ data:toCloudItem(item) })));
-      await Promise.all(existing.filter(item => item.id && !nextIds.has(item.id)).map(item => collection.doc(item.id).remove().catch(() => null)));
-      await collection.doc(STATE_DOC_ID).remove().catch(() => null);
+    async function upsertRemoteItem(item){ const collection = await getCollection(); const next = toCloudItem(item); await collection.doc(next.id).set({ data:next }); return next; }
+    async function deleteRemoteItem(id){ const collection = await getCollection(); await collection.doc(id).remove(); }
+    async function writeInitialItems(){
+      const seed = initialItems.map(item => ({ ...item, updatedAt:Date.now(), deleted:false }));
+      await Promise.all(seed.map(upsertRemoteItem));
+      return sortItems(seed);
+    }
+    async function syncFromRemote({ seedIfEmpty=false, status='已同步' }={}){
+      const remoteItems = await listRemoteItems();
+      items = remoteItems.length ? remoteItems : (seedIfEmpty ? await writeInitialItems() : []);
+      cacheItems(); renderList(); setSyncStatus(status);
+    }
+    async function runRemoteMutation(label, action){
+      remoteBusy = true; setSyncStatus(label);
+      try { await action(); await syncFromRemote({ status:'已同步' }); }
+      catch (error) { console.warn(`${label}失败`, error); setSyncStatus(CLOUDBASE_ENV_ID ? cloudErrorStatus(error, '保存失败') : '待配置'); }
+      finally { remoteBusy = false; }
     }
     async function loadFromCloud(){
       setSyncStatus('同步中');
-      try {
-        const cloudItems = await fetchCloudItems();
-        if (!cloudItems.length) { items = initialItems; await saveCloudItems(items); }
-        else { items = cloudItems; }
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(items)); setSyncStatus('已同步');
-      } catch (error) { console.warn('读取 CloudBase 清单失败，暂用本地缓存', error); items = loadItems(); setSyncStatus(CLOUDBASE_ENV_ID ? cloudErrorStatus(error, '离线缓存') : '待配置'); }
-      renderList();
+      try { await syncFromRemote({ seedIfEmpty:true, status:'已同步' }); }
+      catch (error) { console.warn('读取 CloudBase 清单失败，暂用本地缓存', error); items = loadItems(); setSyncStatus(CLOUDBASE_ENV_ID ? cloudErrorStatus(error, '离线缓存') : '待配置'); renderList(); }
     }
     async function refreshFromCloud(){
-      try {
-        const cloudItems = await fetchCloudItems();
-        const nextSnapshot = JSON.stringify(cloudItems);
-        if (nextSnapshot !== JSON.stringify(items)) { items = cloudItems; localStorage.setItem(STORAGE_KEY, nextSnapshot); setSyncStatus('已更新'); renderList(); }
-      } catch (error) { console.warn('刷新 CloudBase 清单失败', error); }
+      if (remoteBusy) return;
+      try { await syncFromRemote({ status:'已同步' }); }
+      catch (error) { console.warn('刷新 CloudBase 清单失败', error); }
     }
-    function saveItems(){
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(items)); setSyncStatus('保存中'); clearTimeout(saveTimer);
-      saveTimer = setTimeout(async () => { try { await saveCloudItems(items); setSyncStatus('已同步'); } catch (error) { console.warn('保存 CloudBase 清单失败', error); setSyncStatus(CLOUDBASE_ENV_ID ? cloudErrorStatus(error, '保存失败') : '待配置'); } }, 250);
+    function applyLocal(nextItems){ items = sortItems(nextItems); cacheItems(); renderList(); }
+    function saveItem(item){
+      const next = normalizeItem({ ...item, updatedAt:Date.now() });
+      applyLocal(items.some(i=>i.id===next.id) ? items.map(i=>i.id===next.id?next:i) : [...items, next]);
+      runRemoteMutation('保存中', () => upsertRemoteItem(next));
+    }
+    function removeItem(id){
+      applyLocal(items.filter(item => item.id !== id));
+      runRemoteMutation('删除中', () => deleteRemoteItem(id));
+    }
+    function saveMany(nextItems, label='保存中'){
+      const normalized = sortItems(nextItems.map(item => normalizeItem({ ...item, updatedAt:Date.now() })));
+      applyLocal(normalized);
+      runRemoteMutation(label, async () => { await Promise.all(normalized.map(upsertRemoteItem)); });
     }
     async function resetCloud(){
-      setSyncStatus('恢复中'); items = initialItems; localStorage.setItem(STORAGE_KEY, JSON.stringify(items)); renderList();
-      try { await saveCloudItems(items); setSyncStatus('已同步'); }
-      catch (error) { console.warn('恢复 CloudBase 清单失败', error); setSyncStatus(CLOUDBASE_ENV_ID ? cloudErrorStatus(error, '保存失败') : '待配置'); }
+      const previousIds = items.map(item => item.id);
+      items = initialItems.map(item => ({ ...item, updatedAt:Date.now(), deleted:false })); cacheItems(); renderList();
+      await runRemoteMutation('恢复中', async () => {
+        await Promise.all(previousIds.map(id => deleteRemoteItem(id).catch(() => null)));
+        await writeInitialItems();
+      });
     }
     function categories(){ return [...new Set(items.map(i => i.category).filter(Boolean))]; }
     function escapeHtml(str=''){ return String(str).replace(/[&<>'"]/g, tag => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[tag])); }
@@ -325,7 +352,7 @@
       });
       resolveCloudImageUrls();
     }
-    function renameCategory(oldName){ const next = prompt('修改分类名称', oldName); if (!next || next.trim() === oldName) return; const name = next.trim(); items = items.map(item => item.category === oldName ? { ...item, category:name } : item); saveItems(); renderList(); }
+    function renameCategory(oldName){ const next = prompt('修改分类名称', oldName); if (!next || next.trim() === oldName) return; const name = next.trim(); saveMany(items.map(item => item.category === oldName ? { ...item, category:name } : item), '改分类中'); }
     function closeSwipeRows(except=null){ document.querySelectorAll('.swipe-row.open').forEach(row => { if(row !== except) row.classList.remove('open'); }); }
     function fileToCompressedDataUrl(file){ return new Promise((resolve, reject) => { const reader = new FileReader(); reader.onerror = reject; reader.onload = () => { const img = new Image(); img.onerror = reject; img.onload = () => { const max = 900; const scale = Math.min(1, max / Math.max(img.width, img.height)); const canvas = document.createElement('canvas'); canvas.width = Math.max(1, Math.round(img.width * scale)); canvas.height = Math.max(1, Math.round(img.height * scale)); canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height); resolve(canvas.toDataURL('image/jpeg', 0.82)); }; img.src = reader.result; }; reader.readAsDataURL(file); }); }
     async function uploadImage(file){
@@ -347,8 +374,8 @@
     $('#categoryStats').addEventListener('click', e => { const btn=e.target.closest('[data-filter-category]'); if(!btn) return; categoryFilter.value=btn.dataset.filterCategory; renderList(); window.scrollTo({top:250, behavior:'smooth'}); });
     listRoot.addEventListener('pointerdown', e => { const row=e.target.closest('.swipe-row'); if(!row || e.target.closest('button,input')) return; activeRow=row; startX=e.clientX; });
     listRoot.addEventListener('pointerup', e => { if(!activeRow) return; const dx=e.clientX-startX; if(dx < -35) { closeSwipeRows(activeRow); activeRow.classList.add('open'); } else if(dx > 25 || Math.abs(dx) < 8) { activeRow.classList.remove('open'); } activeRow=null; });
-    listRoot.addEventListener('click', e => { const t=e.target.closest('[data-action]'); if(!t) { if(!e.target.closest('.swipe-row.open')) closeSwipeRows(); return; } const item=items.find(i=>i.id===t.dataset.id); if(!item) return; if(t.dataset.action==='toggle') { item.done=t.checked; saveItems(); renderList(); return; } if(t.dataset.action==='edit') { closeSwipeRows(); return openModal(item); } if(t.dataset.action==='delete' && confirm(`确定删除“${item.name}”吗？`)) items=items.filter(i=>i.id!==item.id); saveItems(); renderList(); });
-    itemForm.addEventListener('submit', e => { e.preventDefault(); const id=$('#itemId').value; const payload={name:$('#itemName').value.trim(), category:$('#itemCategory').value.trim(), qty:$('#itemQty').value.trim(), note:$('#itemNote').value.trim(), images:currentImages}; if(!payload.name||!payload.category) return; if(id) items=items.map(i=>i.id===id?{...i,...payload,image:''}:i); else items.push({id:crypto.randomUUID?crypto.randomUUID():`item-${Date.now()}`,...payload,done:false,createdAt:Date.now()}); saveItems(); closeModal(); renderList(); });
+    listRoot.addEventListener('click', e => { const t=e.target.closest('[data-action]'); if(!t) { if(!e.target.closest('.swipe-row.open')) closeSwipeRows(); return; } const item=items.find(i=>i.id===t.dataset.id); if(!item) return; if(t.dataset.action==='toggle') { saveItem({ ...item, done:t.checked }); return; } if(t.dataset.action==='edit') { closeSwipeRows(); return openModal(item); } if(t.dataset.action==='delete' && confirm(`确定删除“${item.name}”吗？`)) removeItem(item.id); });
+    itemForm.addEventListener('submit', e => { e.preventDefault(); const id=$('#itemId').value; const existing = items.find(i=>i.id===id); const payload={id:id || newItemId(), name:$('#itemName').value.trim(), category:$('#itemCategory').value.trim(), qty:$('#itemQty').value.trim(), note:$('#itemNote').value.trim(), images:currentImages, done:existing?.done || false, createdAt:existing?.createdAt || Date.now()}; if(!payload.name||!payload.category) return; saveItem({ ...(existing || {}), ...payload, image:'' }); closeModal(); });
     $('#resetBtn').addEventListener('click',()=>{ if(confirm('恢复初始清单会覆盖所有人看到的云端记录，确定继续吗？')) resetCloud(); });
     loadFromCloud(); setInterval(refreshFromCloud, 15000);
   </script>
