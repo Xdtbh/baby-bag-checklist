@@ -39,7 +39,7 @@
     .mini span { display:block; color:var(--muted); font-size:12px; }
     .mini strong { display:block; margin-top:2px; font-size:22px; }
     .toolbar { position:sticky; top:10px; z-index:10; margin-bottom:12px; padding:8px; border-radius:20px; background:rgba(255,255,255,.86); border:1px solid rgba(255,255,255,.9); box-shadow:0 12px 30px rgba(170,93,121,.1); backdrop-filter:blur(18px); display:flex; align-items:center; gap:6px; }
-    .toolbar select { width:88px; flex:0 0 88px; padding:10px 8px; border-radius:16px; font-size:13px; }
+    .toolbar select { width:110px; flex:0 0 110px; padding:10px 8px; border-radius:16px; font-size:13px; }
     .toolbar #statusFilter { width:78px; flex-basis:78px; }
     .searchbox { position:relative; flex:1 1 auto; min-width:0; }
     .searchbox span { position:absolute; left:12px; top:50%; transform:translateY(-50%); color:#98a2b3; font-size:13px; }
@@ -64,15 +64,9 @@
     .items { display:grid; }
     .swipe-row { position:relative; overflow:hidden; border-top:1px solid #fff1f5; background:rgba(255,255,255,.35); touch-action:pan-y; }
     .swipe-row:first-child { border-top:0; }
-    .swipe-actions { position:absolute; inset:0 0 0 auto; width:132px; display:flex; align-items:stretch; justify-content:flex-end; background:linear-gradient(90deg,rgba(255,255,255,0),rgba(255,241,245,.98)); opacity:0; pointer-events:none; transition:opacity .18s ease; }
-    .swipe-row.open .swipe-actions { opacity:1; pointer-events:auto; }
-    .swipe-actions button { width:66px; font-weight:900; color:#fff; }
-    .swipe-actions .edit-btn { background:#64748b; }
-    .swipe-actions .delete-btn { background:#e11d48; }
-    .item { position:relative; z-index:1; display:flex; align-items:center; justify-content:space-between; gap:10px; padding:14px 14px; background:#fff; transition:transform .22s ease, background .22s ease; will-change:transform; }
-    .swipe-row.open .item { transform:translateX(-132px); }
-    .item label { min-width:0; flex:1; display:flex; align-items:center; gap:10px; cursor:pointer; }
-    .item input[type="checkbox"] { width:20px; height:20px; flex:0 0 auto; margin:2px 0 0; accent-color:var(--rose); box-shadow:none; }
+    .item { position:relative; z-index:1; display:flex; align-items:center; justify-content:space-between; gap:10px; padding:14px 14px; background:#fff; transition:background .22s ease; }
+    .item { cursor:pointer; }
+    .item input[type="checkbox"] { width:20px; height:20px; flex:0 0 auto; margin:2px 0 0; accent-color:var(--rose); box-shadow:none; cursor:pointer; }
     .item-title { display:block; font-weight:900; line-height:1.35; word-break:break-word; }
     .item-meta { display:block; margin-top:5px; color:var(--muted); font-size:14px; line-height:1.55; }
     .item-meta strong { color:#344054; }
@@ -102,6 +96,7 @@
     .category-grid { display:grid; grid-template-columns:1fr; gap:10px; }
     textarea { resize:vertical; min-height:92px; }
     .dialog-actions { display:flex; justify-content:flex-end; gap:10px; margin-top:20px; }
+    .dialog-actions .delete-modal { margin-right:auto; color:#fff; background:#e11d48; }
     .cancel { background:#f2f4f7; color:#475467; }
     .save { background:var(--rose); color:#fff; }
     .icon { display:inline-flex; align-items:center; justify-content:center; line-height:1; }
@@ -114,8 +109,8 @@
     <div>
       <div class="pill"><span class="icon">♡</span> 给宝宝和妈妈的安心准备</div>
       <h1>待产清单，安心准备</h1>
-      <p class="lead">把要买、要带、要确认的物品收进同一份云端清单。家人打开同一个链接就能看到最新进度，手机上随手勾选，重要物品还可以多图记录。</p>
-      <div class="hero-note"><span>云端共享</span><span>自定义分类</span><span>多图记录</span><span>手机优先</span></div>
+      <p class="lead">把待买、待带、待确认的物品统一收进云端清单。家人打开同一个链接即可查看最新进度，勾选、补充和图片记录都会实时同步。</p>
+      <div class="hero-note"><span>云端共享</span><span>自定义分类</span><span>多图记录</span></div>
       <div class="actions">
         <button id="addTopBtn" class="btn btn-primary"><span class="icon">＋</span> 新增物品</button>
         <span id="syncStatus" class="sync-mini">同步中</span>
@@ -154,7 +149,7 @@
           <button id="removeImageBtn" type="button" class="link-btn">清空图片</button>
         </label>
       </div>
-      <div class="dialog-actions"><button type="button" id="cancelBtn" class="btn cancel">取消</button><button class="btn save">保存</button></div>
+      <div class="dialog-actions"><button type="button" id="deleteItemBtn" class="btn delete-modal">删除</button><button type="button" id="cancelBtn" class="btn cancel">取消</button><button class="btn save">保存</button></div>
     </form>
   </div>
 
@@ -171,11 +166,9 @@
     let items = [];
     let cloudbaseReady = null;
     let remoteBusy = false;
-    let startX = 0;
-    let activeRow = null;
     let currentImages = [];
     const $ = s => document.querySelector(s);
-    const listRoot = $('#listRoot'), emptyState = $('#emptyState'), searchInput = $('#searchInput'), categoryFilter = $('#categoryFilter'), statusFilter = $('#statusFilter'), modal = $('#itemModal'), itemForm = $('#itemForm'), imageInput = $('#itemImage'), imagePreview = $('#imagePreview'), removeImageBtn = $('#removeImageBtn'), categorySelect = $('#categorySelect');
+    const listRoot = $('#listRoot'), emptyState = $('#emptyState'), searchInput = $('#searchInput'), categoryFilter = $('#categoryFilter'), statusFilter = $('#statusFilter'), modal = $('#itemModal'), itemForm = $('#itemForm'), imageInput = $('#itemImage'), imagePreview = $('#imagePreview'), removeImageBtn = $('#removeImageBtn'), categorySelect = $('#categorySelect'), deleteItemBtn = $('#deleteItemBtn');
     function setSyncStatus(text){ const node = $('#syncStatus'); if (node) node.textContent = text; }
     function cloudErrorStatus(error, fallback='保存失败'){
       const message = String(error?.message || error || '');
@@ -302,11 +295,11 @@
     function openModal(item=null, defaultCategory=''){
       document.body.style.overflow='hidden'; modal.classList.add('show'); $('#modalTitle').textContent=item?'编辑物品':'新增物品';
       const selectedCategory = item?.category || defaultCategory || categories()[0] || '待产清单';
-      renderCategorySelect(selectedCategory); $('#itemId').value=item?.id||''; $('#itemName').value=item?.name||''; $('#itemCategory').value=selectedCategory; $('#itemQty').value=item?.qty||''; $('#itemNote').value=item?.note||''; currentImages = normalizeImages(item); imageInput.value=''; updateImagePreview(); setTimeout(()=>$('#itemName').focus(),60);
+      renderCategorySelect(selectedCategory); $('#itemId').value=item?.id||''; $('#itemName').value=item?.name||''; $('#itemCategory').value=selectedCategory; $('#itemQty').value=item?.qty||''; $('#itemNote').value=item?.note||''; deleteItemBtn.style.display = item ? 'inline-flex' : 'none'; currentImages = normalizeImages(item); imageInput.value=''; updateImagePreview(); setTimeout(()=>$('#itemName').focus(),60);
     }
-    function closeModal(){ modal.classList.remove('show'); document.body.style.overflow=''; itemForm.reset(); currentImages=[]; updateImagePreview(); }
+    function closeModal(){ modal.classList.remove('show'); document.body.style.overflow=''; itemForm.reset(); deleteItemBtn.style.display='none'; currentImages=[]; updateImagePreview(); }
     function filteredItems(){ const q=searchInput.value.trim().toLowerCase(), c=categoryFilter.value, s=statusFilter.value; return items.filter(i => [i.name,i.category,i.qty,i.note].join(' ').toLowerCase().includes(q) && (c==='all'||i.category===c) && (s==='all'||(s==='done'?i.done:!i.done))); }
-    function renderControls(){ const current=categoryFilter.value||'all'; categoryFilter.innerHTML='<option value="all">分类</option>'+categories().map(c=>`<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join(''); categoryFilter.value=categories().includes(current)?current:'all'; }
+    function renderControls(){ const current=categoryFilter.value||'all'; categoryFilter.innerHTML='<option value="all">全部分类</option>'+categories().map(c=>`<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join(''); categoryFilter.value=categories().includes(current)?current:'all'; }
     function renderStats(){ const done=items.filter(i=>i.done).length, total=items.length, pct=total?Math.round(done/total*100):0; $('#progressText').textContent=`${done}/${total}`; $('#progressBar').style.width=`${pct}%`; $('#totalCount').textContent=total; $('#doneCount').textContent=done; $('#todoCount').textContent=total-done; $('#categoryStats').innerHTML=categories().map(c=>{ const g=items.filter(i=>i.category===c), d=g.filter(i=>i.done).length, p=g.length?Math.round(d/g.length*100):0; return `<button class="stat-card" data-filter-category="${escapeHtml(c)}"><div class="stat-top"><span>${escapeHtml(c)}</span><b>${p}%</b></div><p>${d}/${g.length} 已完成</p><div class="bar"><i style="width:${p}%"></i></div></button>`; }).join(''); }
     function renderList(){
       renderControls(); renderStats(); const visible=filteredItems(), grouped=visible.reduce((a,i)=>{(a[i.category] ||= []).push(i); return a;},{}); listRoot.innerHTML=''; emptyState.classList.toggle('show', visible.length===0);
@@ -319,7 +312,7 @@
           const row=document.createElement('div'); row.className=`swipe-row ${item.done?'done':''}`; row.dataset.id = item.id;
           const imageList = normalizeImages(item);
           const imageHtml = imageList.length ? `<div class="thumb-row">${imageList.map((src, index) => `<img class="thumb" src="${escapeHtml(imageSrc(src) || src)}" alt="${escapeHtml(item.name)}图片${index + 1}">`).join('')}</div>` : '';
-          row.innerHTML=`<div class="swipe-actions"><button class="edit-btn" data-action="edit" data-id="${item.id}">编辑</button><button class="delete-btn" data-action="delete" data-id="${item.id}">删除</button></div><div class="item"><label><input type="checkbox" ${item.done?'checked':''} data-action="toggle" data-id="${item.id}"><span class="item-content"><span class="item-main"><span><span class="item-title">${escapeHtml(item.name)}</span><span class="item-meta">${item.qty?`<strong>${escapeHtml(item.qty)}</strong>`:''}${item.qty&&item.note?' · ':''}${escapeHtml(item.note||'')}</span></span></span>${imageHtml}</span></label></div>`;
+          row.innerHTML=`<div class="item" data-action="open" data-id="${item.id}"><input type="checkbox" ${item.done?'checked':''} data-action="toggle" data-id="${item.id}" aria-label="切换${escapeHtml(item.name)}完成状态"><span class="item-content"><span class="item-main"><span><span class="item-title">${escapeHtml(item.name)}</span><span class="item-meta">${item.qty?`<strong>${escapeHtml(item.qty)}</strong>`:''}${item.qty&&item.note?' · ':''}${escapeHtml(item.note||'')}</span></span></span>${imageHtml}</span></div>`;
           box.appendChild(row);
         });
         listRoot.appendChild(section);
@@ -327,7 +320,6 @@
       resolveCloudImageUrls();
     }
     function renameCategory(oldName){ const next = prompt('修改分类名称', oldName); if (!next || next.trim() === oldName) return; const name = next.trim(); saveMany(items.map(item => item.category === oldName ? { ...item, category:name } : item), '改分类中'); }
-    function closeSwipeRows(except=null){ document.querySelectorAll('.swipe-row.open').forEach(row => { if(row !== except) row.classList.remove('open'); }); }
     function fileToCompressedDataUrl(file){ return new Promise((resolve, reject) => { const reader = new FileReader(); reader.onerror = reject; reader.onload = () => { const img = new Image(); img.onerror = reject; img.onload = () => { const max = 900; const scale = Math.min(1, max / Math.max(img.width, img.height)); const canvas = document.createElement('canvas'); canvas.width = Math.max(1, Math.round(img.width * scale)); canvas.height = Math.max(1, Math.round(img.height * scale)); canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height); resolve(canvas.toDataURL('image/jpeg', 0.82)); }; img.src = reader.result; }; reader.readAsDataURL(file); }); }
     async function uploadImage(file){
       if (!CLOUDBASE_ENV_ID) return fileToCompressedDataUrl(file);
@@ -346,9 +338,15 @@
     $('#addTopBtn').addEventListener('click',()=>openModal()); $('#closeModalBtn').addEventListener('click',closeModal); $('#cancelBtn').addEventListener('click',closeModal); modal.addEventListener('click',e=>{ if(e.target===modal) closeModal(); }); searchInput.addEventListener('input',renderList); categoryFilter.addEventListener('change',renderList); statusFilter.addEventListener('change',renderList); categorySelect.addEventListener('change', e => { if(e.target.value === '__new__') { const name = prompt('请输入新分类名称'); if(name && name.trim()) { $('#itemCategory').value = name.trim(); const option = new Option(name.trim(), name.trim()); categorySelect.add(option, categorySelect.options.length - 1); categorySelect.value = name.trim(); } else { categorySelect.value = $('#itemCategory').value || categories()[0] || '__new__'; } } else { $('#itemCategory').value = e.target.value; } });
     imageInput.addEventListener('change', async e => { const files=Array.from(e.target.files || []); if(!files.length) return; setSyncStatus(CLOUDBASE_ENV_ID ? '上传图片' : '处理图片'); const uploaded = await Promise.all(files.map(uploadImage)); currentImages = currentImages.concat(uploaded); updateImagePreview(); setSyncStatus(CLOUDBASE_ENV_ID ? '待保存' : '待配置'); }); removeImageBtn.addEventListener('click', () => { currentImages=[]; imageInput.value=''; updateImagePreview(); });
     $('#categoryStats').addEventListener('click', e => { const btn=e.target.closest('[data-filter-category]'); if(!btn) return; categoryFilter.value=btn.dataset.filterCategory; renderList(); window.scrollTo({top:250, behavior:'smooth'}); });
-    listRoot.addEventListener('pointerdown', e => { const row=e.target.closest('.swipe-row'); if(!row || e.target.closest('button,input')) return; activeRow=row; startX=e.clientX; });
-    listRoot.addEventListener('pointerup', e => { if(!activeRow) return; const dx=e.clientX-startX; if(dx < -35) { closeSwipeRows(activeRow); activeRow.classList.add('open'); } else if(dx > 25 || Math.abs(dx) < 8) { activeRow.classList.remove('open'); } activeRow=null; });
-    listRoot.addEventListener('click', e => { const t=e.target.closest('[data-action]'); if(!t) { if(!e.target.closest('.swipe-row.open')) closeSwipeRows(); return; } const item=items.find(i=>i.id===t.dataset.id); if(!item) return; if(t.dataset.action==='toggle') { saveItem({ ...item, done:t.checked }); return; } if(t.dataset.action==='edit') { closeSwipeRows(); return openModal(item); } if(t.dataset.action==='delete' && confirm(`确定删除“${item.name}”吗？`)) removeItem(item.id); });
+    listRoot.addEventListener('click', e => {
+      const actionNode = e.target.closest('[data-action]');
+      const id = actionNode?.dataset.id || e.target.closest('.item')?.dataset.id;
+      const item = items.find(i=>i.id===id);
+      if(!item) return;
+      if(actionNode?.dataset.action==='toggle') { e.stopPropagation(); saveItem({ ...item, done:actionNode.checked }); return; }
+      openModal(item);
+    });
+    deleteItemBtn.addEventListener('click', () => { const id=$('#itemId').value; const item=items.find(i=>i.id===id); if(!item) return; if(confirm(`确定删除“${item.name}”吗？`)) { removeItem(id); closeModal(); } });
     itemForm.addEventListener('submit', e => { e.preventDefault(); const id=$('#itemId').value; const existing = items.find(i=>i.id===id); const payload={id:id || newItemId(), name:$('#itemName').value.trim(), category:$('#itemCategory').value.trim(), qty:$('#itemQty').value.trim(), note:$('#itemNote').value.trim(), images:currentImages, done:existing?.done || false, createdAt:existing?.createdAt || Date.now()}; if(!payload.name||!payload.category) return; saveItem({ ...(existing || {}), ...payload, image:'' }); closeModal(); });
     loadFromCloud();
   </script>
