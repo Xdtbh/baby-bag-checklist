@@ -105,6 +105,7 @@ CLOUDBASE_COLLECTION=checklist_items
 2. 上传本目录下这些文件：
    - `index.html`
    - `config.js`
+   - `vendor/cloudbase.full.js`
 3. 上传完成后，用静态托管分配的公网域名访问。
 
 ### 方式 B：CloudBase CLI 部署
@@ -115,6 +116,8 @@ CLOUDBASE_COLLECTION=checklist_items
 npm run build
 cloudbase hosting deploy . -e 你的 CloudBase 环境 ID
 ```
+
+如果使用腾讯云控制台的 GitHub 自动部署，安装命令建议留空；构建命令保留 `npm run build`，构建产物目录填写 `./`。
 
 > 注意：如果使用 CLI 部署，需要确保 `config.js` 已经生成，或者提前设置 `CLOUDBASE_ENV_ID` 环境变量。
 
