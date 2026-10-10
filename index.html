@@ -229,7 +229,7 @@
     }
     async function saveCloudItems(nextItems){
       const db = await ensureCloudbase();
-      await db.collection(STATE_COLLECTION).doc(STATE_DOC_ID).set({ items:nextItems.map(toCloudItem), updatedAt:Date.now(), version:'cloudbase-v1' });
+      await db.collection(STATE_COLLECTION).doc(STATE_DOC_ID).set({ data:{ items:nextItems.map(toCloudItem), updatedAt:Date.now(), version:'cloudbase-v1' } });
     }
     async function loadFromCloud(){
       setSyncStatus('同步中');
