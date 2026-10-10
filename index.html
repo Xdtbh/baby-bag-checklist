@@ -67,9 +67,10 @@
     .item { position:relative; z-index:1; display:flex; align-items:center; justify-content:space-between; gap:10px; padding:14px 14px; background:#fff; transition:background .22s ease; }
     .item { cursor:pointer; }
     .item input[type="checkbox"] { width:20px; height:20px; flex:0 0 auto; margin:2px 0 0; accent-color:var(--rose); box-shadow:none; cursor:pointer; }
-    .item-title { display:block; font-weight:900; line-height:1.35; word-break:break-word; }
+    .item-title-row { display:flex; align-items:center; flex-wrap:wrap; gap:8px; }
+    .item-title { display:inline; font-weight:900; line-height:1.35; word-break:break-word; }
     .item-meta { display:block; margin-top:5px; color:var(--muted); font-size:14px; line-height:1.55; }
-    .item-price { display:inline-flex; margin-top:7px; padding:4px 9px; border-radius:999px; color:var(--rose-dark); background:#fff0f5; font-size:13px; font-weight:900; }
+    .item-price { display:inline-flex; padding:3px 8px; border-radius:999px; color:var(--rose-dark); background:#fff0f5; font-size:13px; font-weight:900; white-space:nowrap; }
     .item-meta strong { color:#344054; }
     .swipe-row.done .item { background:linear-gradient(90deg, rgba(236,253,245,.96), rgba(248,255,252,.93)); }
     .swipe-row.done .item-title { color:var(--green); text-decoration:none; }
@@ -318,7 +319,7 @@
           const imageList = normalizeImages(item);
           const imageHtml = imageList.length ? `<div class="thumb-row">${imageList.map((src, index) => `<img class="thumb" src="${escapeHtml(imageSrc(src) || src)}" alt="${escapeHtml(item.name)}图片${index + 1}">`).join('')}</div>` : '';
           const priceHtml = formatAmount(item.amount) ? `<span class="item-price">${formatAmount(item.amount)}</span>` : '';
-          row.innerHTML=`<div class="item" data-action="open" data-id="${item.id}"><span class="item-content"><span class="item-main"><span><span class="item-title">${escapeHtml(item.name)}</span><span class="item-meta">${item.qty?`<strong>${escapeHtml(item.qty)}</strong>`:''}${item.qty&&item.note?' · ':''}${escapeHtml(item.note||'')}</span>${priceHtml}</span></span>${imageHtml}</span><input type="checkbox" ${item.done?'checked':''} data-action="toggle" data-id="${item.id}" aria-label="切换${escapeHtml(item.name)}完成状态"></div>`;
+          row.innerHTML=`<div class="item" data-action="open" data-id="${item.id}"><span class="item-content"><span class="item-main"><span class="item-title-row"><span class="item-title">${escapeHtml(item.name)}</span>${priceHtml}</span><span class="item-meta">${item.qty?`<strong>${escapeHtml(item.qty)}</strong>`:''}${item.qty&&item.note?' · ':''}${escapeHtml(item.note||'')}</span></span>${imageHtml}</span><input type="checkbox" ${item.done?'checked':''} data-action="toggle" data-id="${item.id}" aria-label="切换${escapeHtml(item.name)}完成状态"></div>`;
           box.appendChild(row);
         });
         listRoot.appendChild(section);
