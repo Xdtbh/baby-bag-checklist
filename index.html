@@ -278,7 +278,7 @@
     }
     async function runRemoteMutation(label, action){
       remoteBusy = true; setSyncStatus(label);
-      try { await action(); await syncFromRemote({ status:'已同步' }); }
+      try { await action(); setSyncStatus('已同步'); }
       catch (error) { console.warn(`${label}失败`, error); setSyncStatus(CLOUDBASE_ENV_ID ? cloudErrorStatus(error, '保存失败') : '待配置'); }
       finally { remoteBusy = false; }
     }
@@ -286,11 +286,6 @@
       setSyncStatus('同步中');
       try { await syncFromRemote({ seedIfEmpty:true, status:'已同步' }); }
       catch (error) { console.warn('读取 CloudBase 清单失败，暂用本地缓存', error); items = loadItems(); setSyncStatus(CLOUDBASE_ENV_ID ? cloudErrorStatus(error, '离线缓存') : '待配置'); renderList(); }
-    }
-    async function refreshFromCloud(){
-      if (remoteBusy) return;
-      try { await syncFromRemote({ status:'已同步' }); }
-      catch (error) { console.warn('刷新 CloudBase 清单失败', error); }
     }
     function applyLocal(nextItems){ items = sortItems(nextItems); cacheItems(); renderList(); }
     function saveItem(item){
@@ -385,7 +380,7 @@
     listRoot.addEventListener('click', e => { const t=e.target.closest('[data-action]'); if(!t) { if(!e.target.closest('.swipe-row.open')) closeSwipeRows(); return; } const item=items.find(i=>i.id===t.dataset.id); if(!item) return; if(t.dataset.action==='toggle') { saveItem({ ...item, done:t.checked }); return; } if(t.dataset.action==='edit') { closeSwipeRows(); return openModal(item); } if(t.dataset.action==='delete' && confirm(`确定删除“${item.name}”吗？`)) removeItem(item.id); });
     itemForm.addEventListener('submit', e => { e.preventDefault(); const id=$('#itemId').value; const existing = items.find(i=>i.id===id); const payload={id:id || newItemId(), name:$('#itemName').value.trim(), category:$('#itemCategory').value.trim(), qty:$('#itemQty').value.trim(), note:$('#itemNote').value.trim(), images:currentImages, done:existing?.done || false, createdAt:existing?.createdAt || Date.now()}; if(!payload.name||!payload.category) return; saveItem({ ...(existing || {}), ...payload, image:'' }); closeModal(); });
     $('#resetBtn').addEventListener('click',()=>{ if(confirm('恢复初始清单会覆盖所有人看到的云端记录，确定继续吗？')) resetCloud(); });
-    loadFromCloud(); setInterval(refreshFromCloud, 15000);
+    loadFromCloud();
   </script>
 </body>
 </html>
