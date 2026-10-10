@@ -328,22 +328,12 @@
       resolveCloudImageUrls();
     }
     function renameCategory(oldName){ const next = prompt('修改分类名称', oldName); if (!next || next.trim() === oldName) return; const name = next.trim(); saveMany(items.map(item => item.category === oldName ? { ...item, category:name } : item), '改分类中'); }
-    function fileToCompressedDataUrl(file){ return new Promise((resolve, reject) => { const reader = new FileReader(); reader.onerror = reject; reader.onload = () => { const img = new Image(); img.onerror = reject; img.onload = () => { const max = 900; const scale = Math.min(1, max / Math.max(img.width, img.height)); const canvas = document.createElement('canvas'); canvas.width = Math.max(1, Math.round(img.width * scale)); canvas.height = Math.max(1, Math.round(img.height * scale)); canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height); resolve(canvas.toDataURL('image/jpeg', 0.82)); }; img.src = reader.result; }; reader.readAsDataURL(file); }); }
+    function fileToCompressedDataUrl(file){ return new Promise((resolve, reject) => { const reader = new FileReader(); reader.onerror = reject; reader.onload = () => { const img = new Image(); img.onerror = reject; img.onload = () => { const max = 640; const scale = Math.min(1, max / Math.max(img.width, img.height)); const canvas = document.createElement('canvas'); canvas.width = Math.max(1, Math.round(img.width * scale)); canvas.height = Math.max(1, Math.round(img.height * scale)); canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height); resolve(canvas.toDataURL('image/jpeg', 0.72)); }; img.src = reader.result; }; reader.readAsDataURL(file); }); }
     async function uploadImage(file){
-      if (!CLOUDBASE_ENV_ID) return fileToCompressedDataUrl(file);
-      try {
-        await ensureCloudbase();
-        const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
-        const cloudPath = `baby-bag/${Date.now()}-${Math.random().toString(16).slice(2)}-${safeName}`;
-        const result = await cloudbaseApp.uploadFile({ cloudPath, filePath:file });
-        return result.fileID;
-      } catch (error) {
-        console.warn('上传 CloudBase 图片失败', error);
-        throw error;
-      }
+      return fileToCompressedDataUrl(file);
     }
     $('#addTopBtn').addEventListener('click',()=>openModal()); $('#closeModalBtn').addEventListener('click',closeModal); $('#cancelBtn').addEventListener('click',closeModal); modal.addEventListener('click',e=>{ if(e.target===modal) closeModal(); }); searchInput.addEventListener('input',renderList); categoryFilter.addEventListener('change',renderList); statusFilter.addEventListener('change',renderList); categorySelect.addEventListener('change', e => { if(e.target.value === '__new__') { const name = prompt('请输入新分类名称'); if(name && name.trim()) { $('#itemCategory').value = name.trim(); const option = new Option(name.trim(), name.trim()); categorySelect.add(option, categorySelect.options.length - 1); categorySelect.value = name.trim(); } else { categorySelect.value = $('#itemCategory').value || categories()[0] || '__new__'; } } else { $('#itemCategory').value = e.target.value; } });
-    imageInput.addEventListener('change', async e => { const files=Array.from(e.target.files || []); if(!files.length) return; setSyncStatus(CLOUDBASE_ENV_ID ? '上传图片' : '处理图片'); try { const uploaded = await Promise.all(files.map(uploadImage)); currentImages = currentImages.concat(uploaded); updateImagePreview(); setSyncStatus(CLOUDBASE_ENV_ID ? '待保存' : '待配置'); } catch (error) { setSyncStatus(CLOUDBASE_ENV_ID ? cloudErrorStatus(error, '图片上传失败') : '处理失败'); } }); removeImageBtn.addEventListener('click', () => { currentImages=[]; imageInput.value=''; updateImagePreview(); });
+    imageInput.addEventListener('change', async e => { const files=Array.from(e.target.files || []); if(!files.length) return; setSyncStatus('处理图片'); try { const uploaded = await Promise.all(files.map(uploadImage)); currentImages = currentImages.concat(uploaded); updateImagePreview(); setSyncStatus(CLOUDBASE_ENV_ID ? '待保存' : '待配置'); } catch (error) { setSyncStatus('处理失败'); } }); removeImageBtn.addEventListener('click', () => { currentImages=[]; imageInput.value=''; updateImagePreview(); });
     $('#categoryStats').addEventListener('click', e => { const btn=e.target.closest('[data-filter-category]'); if(!btn) return; categoryFilter.value=btn.dataset.filterCategory; renderList(); window.scrollTo({top:250, behavior:'smooth'}); });
     listRoot.addEventListener('click', e => {
       const actionNode = e.target.closest('[data-action]');
