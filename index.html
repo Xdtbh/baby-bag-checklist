@@ -34,7 +34,7 @@
     .badge { width:64px; height:64px; display:grid; place-items:center; border-radius:18px; background:#fff; color:var(--rose-dark); font-size:36px; box-shadow: inset 0 0 0 1px #ffe2ea; }
     .bar { height:14px; margin-top:18px; overflow:hidden; border-radius:999px; background:rgba(255,255,255,.9); border:1px solid #ffe0e8; }
     .bar > i { display:block; height:100%; width:0; border-radius:999px; background:linear-gradient(90deg,#fb7185,#ec4899,#fb923c); transition:width .45s ease; }
-    .mini-stats { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-top:16px; }
+    .mini-stats { display:grid; grid-template-columns:repeat(4,1fr); gap:10px; margin-top:16px; }
     .mini { padding:12px; text-align:center; background:rgba(255,255,255,.78); border-radius:18px; }
     .mini span { display:block; color:var(--muted); font-size:12px; }
     .mini strong { display:block; margin-top:2px; font-size:22px; }
@@ -69,6 +69,7 @@
     .item input[type="checkbox"] { width:20px; height:20px; flex:0 0 auto; margin:2px 0 0; accent-color:var(--rose); box-shadow:none; cursor:pointer; }
     .item-title { display:block; font-weight:900; line-height:1.35; word-break:break-word; }
     .item-meta { display:block; margin-top:5px; color:var(--muted); font-size:14px; line-height:1.55; }
+    .item-price { display:inline-flex; margin-top:7px; padding:4px 9px; border-radius:999px; color:var(--rose-dark); background:#fff0f5; font-size:13px; font-weight:900; }
     .item-meta strong { color:#344054; }
     .swipe-row.done .item { background:linear-gradient(90deg, rgba(236,253,245,.96), rgba(248,255,252,.93)); }
     .swipe-row.done .item-title { color:var(--green); text-decoration:none; }
@@ -101,7 +102,7 @@
     .save { background:var(--rose); color:#fff; }
     .icon { display:inline-flex; align-items:center; justify-content:center; line-height:1; }
     @media (max-width: 900px) { .hero { grid-template-columns:1fr; padding:22px; } }
-    @media (max-width: 640px) { .wrap { width:min(100% - 20px,520px); } .hero { margin-top:12px; border-radius:26px; } .mini-stats, .two-col { grid-template-columns:1fr; } .section-head { align-items:stretch; flex-direction:column; } .section-actions { justify-content:flex-start; } .add-category, .rename-category { width:100%; } }
+    @media (max-width: 640px) { .wrap { width:min(100% - 20px,520px); } .hero { margin-top:12px; border-radius:26px; } .mini-stats { grid-template-columns:repeat(2,1fr); } .two-col { grid-template-columns:1fr; } .section-head { align-items:stretch; flex-direction:column; } .section-actions { justify-content:flex-start; } .add-category, .rename-category { width:100%; } }
   </style>
 </head>
 <body>
@@ -119,7 +120,7 @@
     <aside class="progress-card">
       <div class="progress-head"><div><p class="eyebrow">当前完成度</p><p id="progressText" class="big-number">0/0</p></div><div class="badge">✓</div></div>
       <div class="bar"><i id="progressBar"></i></div>
-      <div class="mini-stats"><div class="mini"><span>总计</span><strong id="totalCount">0</strong></div><div class="mini"><span>已完成</span><strong id="doneCount">0</strong></div><div class="mini"><span>待准备</span><strong id="todoCount">0</strong></div></div>
+      <div class="mini-stats"><div class="mini"><span>总计</span><strong id="totalCount">0</strong></div><div class="mini"><span>已完成</span><strong id="doneCount">0</strong></div><div class="mini"><span>待准备</span><strong id="todoCount">0</strong></div><div class="mini"><span>累计花费</span><strong id="totalAmount">¥0</strong></div></div>
     </aside>
   </header>
 
@@ -140,7 +141,8 @@
       <input type="hidden" id="itemId" />
       <div class="form-grid">
         <label class="field">物品名称<input id="itemName" required placeholder="例如：160毫升玻璃奶瓶" /></label>
-        <div class="two-col"><label class="field">数量/规格<input id="itemQty" placeholder="例如：×1、S码200片" /></label><label class="field">分类<select id="categorySelect"></select></label></div>
+        <div class="two-col"><label class="field">数量/规格<input id="itemQty" placeholder="例如：×1、S码200片" /></label><label class="field">金额（元）<input id="itemAmount" type="number" min="0" step="0.01" inputmode="decimal" placeholder="例如：199.00" /></label></div>
+        <label class="field">分类<select id="categorySelect"></select></label>
         <input id="itemCategory" type="hidden" required />
         <label class="field">备注<textarea id="itemNote" rows="3" placeholder="购买地点、用途或提醒"></textarea></label>
         <label class="field image-upload">物品图片（可多选，保存后横向展示在物品下方）
@@ -180,12 +182,15 @@
     }
     function newItemId(){ return crypto.randomUUID ? crypto.randomUUID() : `item-${Date.now()}-${Math.random().toString(16).slice(2)}`; }
     function sortItems(list){ return [...list].sort((a,b)=>(a.createdAt||0)-(b.createdAt||0) || String(a.name).localeCompare(String(b.name), 'zh-CN')); }
+    function parseAmount(value){ const amount = Number(String(value ?? '').replace(/[¥￥,，\s元]/g, '')); return Number.isFinite(amount) && amount > 0 ? Math.round(amount * 100) / 100 : 0; }
+    function formatAmount(value){ const amount = parseAmount(value); return amount ? `¥${amount.toLocaleString('zh-CN', { maximumFractionDigits:2 })}` : ''; }
     function normalizeItem(item, stamp=Date.now()){
       return {
         id:item.id || item._id || newItemId(),
         category:(item.category || '待产清单').trim(),
         name:(item.name || '').trim(),
         qty:item.qty || '',
+        amount:parseAmount(item.amount ?? item.price ?? item.cost),
         note:item.note || '',
         done:Boolean(item.done),
         images:normalizeImages(item),
@@ -295,12 +300,12 @@
     function openModal(item=null, defaultCategory=''){
       document.body.style.overflow='hidden'; modal.classList.add('show'); $('#modalTitle').textContent=item?'编辑物品':'新增物品';
       const selectedCategory = item?.category || defaultCategory || categories()[0] || '待产清单';
-      renderCategorySelect(selectedCategory); $('#itemId').value=item?.id||''; $('#itemName').value=item?.name||''; $('#itemCategory').value=selectedCategory; $('#itemQty').value=item?.qty||''; $('#itemNote').value=item?.note||''; deleteItemBtn.style.display = item ? 'inline-flex' : 'none'; currentImages = normalizeImages(item); imageInput.value=''; updateImagePreview(); setTimeout(()=>$('#itemName').focus(),60);
+      renderCategorySelect(selectedCategory); $('#itemId').value=item?.id||''; $('#itemName').value=item?.name||''; $('#itemCategory').value=selectedCategory; $('#itemQty').value=item?.qty||''; $('#itemAmount').value=item?.amount || ''; $('#itemNote').value=item?.note||''; deleteItemBtn.style.display = item ? 'inline-flex' : 'none'; currentImages = normalizeImages(item); imageInput.value=''; updateImagePreview(); setTimeout(()=>$('#itemName').focus(),60);
     }
     function closeModal(){ modal.classList.remove('show'); document.body.style.overflow=''; itemForm.reset(); deleteItemBtn.style.display='none'; currentImages=[]; updateImagePreview(); }
-    function filteredItems(){ const q=searchInput.value.trim().toLowerCase(), c=categoryFilter.value, s=statusFilter.value; return items.filter(i => [i.name,i.category,i.qty,i.note].join(' ').toLowerCase().includes(q) && (c==='all'||i.category===c) && (s==='all'||(s==='done'?i.done:!i.done))); }
+    function filteredItems(){ const q=searchInput.value.trim().toLowerCase(), c=categoryFilter.value, s=statusFilter.value; return items.filter(i => [i.name,i.category,i.qty,i.note,formatAmount(i.amount)].join(' ').toLowerCase().includes(q) && (c==='all'||i.category===c) && (s==='all'||(s==='done'?i.done:!i.done))); }
     function renderControls(){ const current=categoryFilter.value||'all'; categoryFilter.innerHTML='<option value="all">全部分类</option>'+categories().map(c=>`<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join(''); categoryFilter.value=categories().includes(current)?current:'all'; }
-    function renderStats(){ const done=items.filter(i=>i.done).length, total=items.length, pct=total?Math.round(done/total*100):0; $('#progressText').textContent=`${done}/${total}`; $('#progressBar').style.width=`${pct}%`; $('#totalCount').textContent=total; $('#doneCount').textContent=done; $('#todoCount').textContent=total-done; $('#categoryStats').innerHTML=categories().map(c=>{ const g=items.filter(i=>i.category===c), d=g.filter(i=>i.done).length, p=g.length?Math.round(d/g.length*100):0; return `<button class="stat-card" data-filter-category="${escapeHtml(c)}"><div class="stat-top"><span>${escapeHtml(c)}</span><b>${p}%</b></div><p>${d}/${g.length} 已完成</p><div class="bar"><i style="width:${p}%"></i></div></button>`; }).join(''); }
+    function renderStats(){ const done=items.filter(i=>i.done).length, total=items.length, pct=total?Math.round(done/total*100):0, amount=items.reduce((sum,item)=>sum+parseAmount(item.amount),0); $('#progressText').textContent=`${done}/${total}`; $('#progressBar').style.width=`${pct}%`; $('#totalCount').textContent=total; $('#doneCount').textContent=done; $('#todoCount').textContent=total-done; $('#totalAmount').textContent=formatAmount(amount) || '¥0'; $('#categoryStats').innerHTML=categories().map(c=>{ const g=items.filter(i=>i.category===c), d=g.filter(i=>i.done).length, p=g.length?Math.round(d/g.length*100):0, a=g.reduce((sum,item)=>sum+parseAmount(item.amount),0); return `<button class="stat-card" data-filter-category="${escapeHtml(c)}"><div class="stat-top"><span>${escapeHtml(c)}</span><b>${p}%</b></div><p>${d}/${g.length} 已完成${a ? ` · ${formatAmount(a)}` : ''}</p><div class="bar"><i style="width:${p}%"></i></div></button>`; }).join(''); }
     function renderList(){
       renderControls(); renderStats(); const visible=filteredItems(), grouped=visible.reduce((a,i)=>{(a[i.category] ||= []).push(i); return a;},{}); listRoot.innerHTML=''; emptyState.classList.toggle('show', visible.length===0);
       Object.entries(grouped).forEach(([category, group])=>{
@@ -312,7 +317,8 @@
           const row=document.createElement('div'); row.className=`swipe-row ${item.done?'done':''}`; row.dataset.id = item.id;
           const imageList = normalizeImages(item);
           const imageHtml = imageList.length ? `<div class="thumb-row">${imageList.map((src, index) => `<img class="thumb" src="${escapeHtml(imageSrc(src) || src)}" alt="${escapeHtml(item.name)}图片${index + 1}">`).join('')}</div>` : '';
-          row.innerHTML=`<div class="item" data-action="open" data-id="${item.id}"><input type="checkbox" ${item.done?'checked':''} data-action="toggle" data-id="${item.id}" aria-label="切换${escapeHtml(item.name)}完成状态"><span class="item-content"><span class="item-main"><span><span class="item-title">${escapeHtml(item.name)}</span><span class="item-meta">${item.qty?`<strong>${escapeHtml(item.qty)}</strong>`:''}${item.qty&&item.note?' · ':''}${escapeHtml(item.note||'')}</span></span></span>${imageHtml}</span></div>`;
+          const priceHtml = formatAmount(item.amount) ? `<span class="item-price">${formatAmount(item.amount)}</span>` : '';
+          row.innerHTML=`<div class="item" data-action="open" data-id="${item.id}"><span class="item-content"><span class="item-main"><span><span class="item-title">${escapeHtml(item.name)}</span><span class="item-meta">${item.qty?`<strong>${escapeHtml(item.qty)}</strong>`:''}${item.qty&&item.note?' · ':''}${escapeHtml(item.note||'')}</span>${priceHtml}</span></span>${imageHtml}</span><input type="checkbox" ${item.done?'checked':''} data-action="toggle" data-id="${item.id}" aria-label="切换${escapeHtml(item.name)}完成状态"></div>`;
           box.appendChild(row);
         });
         listRoot.appendChild(section);
@@ -347,7 +353,7 @@
       openModal(item);
     });
     deleteItemBtn.addEventListener('click', () => { const id=$('#itemId').value; const item=items.find(i=>i.id===id); if(!item) return; if(confirm(`确定删除“${item.name}”吗？`)) { removeItem(id); closeModal(); } });
-    itemForm.addEventListener('submit', e => { e.preventDefault(); const id=$('#itemId').value; const existing = items.find(i=>i.id===id); const payload={id:id || newItemId(), name:$('#itemName').value.trim(), category:$('#itemCategory').value.trim(), qty:$('#itemQty').value.trim(), note:$('#itemNote').value.trim(), images:currentImages, done:existing?.done || false, createdAt:existing?.createdAt || Date.now()}; if(!payload.name||!payload.category) return; saveItem({ ...(existing || {}), ...payload, image:'' }); closeModal(); });
+    itemForm.addEventListener('submit', e => { e.preventDefault(); const id=$('#itemId').value; const existing = items.find(i=>i.id===id); const payload={id:id || newItemId(), name:$('#itemName').value.trim(), category:$('#itemCategory').value.trim(), qty:$('#itemQty').value.trim(), amount:parseAmount($('#itemAmount').value), note:$('#itemNote').value.trim(), images:currentImages, done:existing?.done || false, createdAt:existing?.createdAt || Date.now()}; if(!payload.name||!payload.category) return; saveItem({ ...(existing || {}), ...payload, image:'' }); closeModal(); });
     loadFromCloud();
   </script>
 </body>
