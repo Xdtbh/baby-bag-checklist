@@ -202,7 +202,10 @@
       };
     }
     function toCloudItem(item){ const next = normalizeItem(item, Date.now()); delete next._id; return next; }
-    function fromCloudItem(item){ return normalizeItem({ ...item, id:item.id || item._id }); }
+    function fromCloudItem(doc){
+      const body = doc?.data && typeof doc.data === 'object' && !Array.isArray(doc.data) ? doc.data : doc;
+      return normalizeItem({ ...body, id:body?.id || doc?._id });
+    }
     function loadCloudbaseSdk(){
       if (window.cloudbase) return Promise.resolve();
       if (!cloudbaseSdkPromise) {
@@ -238,10 +241,13 @@
       const collection = await getCollection();
       const result = await collection.limit(1000).get();
       const docs = Array.isArray(result.data) ? result.data : [];
-      const itemDocs = docs.filter(doc => doc && doc._id !== STATE_DOC_ID && !Array.isArray(doc.items) && !doc.deleted);
-      if (itemDocs.length) return sortItems(itemDocs.map(fromCloudItem).filter(item => item.id && item.name));
-      const legacyDoc = docs.find(doc => doc && (doc._id === STATE_DOC_ID || Array.isArray(doc.items)));
-      return Array.isArray(legacyDoc?.items) ? sortItems(legacyDoc.items.map(fromCloudItem).filter(item => item.id && item.name)) : [];
+      const toActiveItems = list => list.map(fromCloudItem).filter(item => item.id && item.name && !item.deleted);
+      const itemDocs = docs.filter(doc => doc && doc._id !== STATE_DOC_ID && !Array.isArray(doc.items) && !Array.isArray(doc.data?.items));
+      const activeItems = toActiveItems(itemDocs);
+      if (activeItems.length) return sortItems(activeItems);
+      const legacyDoc = docs.find(doc => doc && (doc._id === STATE_DOC_ID || Array.isArray(doc.items) || Array.isArray(doc.data?.items)));
+      const legacyItems = legacyDoc?.data?.items || legacyDoc?.items;
+      return Array.isArray(legacyItems) ? sortItems(toActiveItems(legacyItems)) : [];
     }
     async function upsertRemoteItem(item){ const collection = await getCollection(); const next = toCloudItem(item); await collection.doc(next.id).set({ data:next }); return next; }
     async function deleteRemoteItem(id){ const collection = await getCollection(); await collection.doc(id).remove(); }
