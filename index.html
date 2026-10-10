@@ -67,9 +67,10 @@
     .item { position:relative; z-index:1; display:flex; align-items:center; justify-content:space-between; gap:10px; padding:14px 14px; background:#fff; transition:background .22s ease; }
     .item { cursor:pointer; }
     .item input[type="checkbox"] { width:20px; height:20px; flex:0 0 auto; margin:2px 0 0; accent-color:var(--rose); box-shadow:none; cursor:pointer; }
-    .item-title { display:block; font-weight:900; line-height:1.35; word-break:break-word; }
+    .item-title-row { display:flex; align-items:center; flex-wrap:wrap; gap:8px; }
+    .item-title { display:inline; font-weight:900; line-height:1.35; word-break:break-word; }
     .item-meta { display:block; margin-top:5px; color:var(--muted); font-size:14px; line-height:1.55; }
-    .item-price { display:inline-flex; margin-top:7px; padding:4px 9px; border-radius:999px; color:var(--rose-dark); background:#fff0f5; font-size:13px; font-weight:900; }
+    .item-price { display:inline-flex; padding:3px 8px; border-radius:999px; color:var(--rose-dark); background:#fff0f5; font-size:13px; font-weight:900; white-space:nowrap; }
     .item-meta strong { color:#344054; }
     .swipe-row.done .item { background:linear-gradient(90deg, rgba(236,253,245,.96), rgba(248,255,252,.93)); }
     .swipe-row.done .item-title { color:var(--green); text-decoration:none; }
@@ -287,16 +288,17 @@
     function normalizeImages(item){ return Array.isArray(item?.images) ? item.images : (item?.image ? [item.image] : []); }
     async function resolveCloudImageUrls(){
       if (!CLOUDBASE_ENV_ID) return;
-      const fileIDs = [...new Set(items.flatMap(normalizeImages).filter(src => isCloudFile(src) && !imageUrlCache.has(src)))];
+      const fileIDs = [...new Set(items.flatMap(normalizeImages).concat(currentImages).filter(src => isCloudFile(src) && !imageUrlCache.has(src)))];
       if (!fileIDs.length) return;
       try {
         await ensureCloudbase();
-        const result = await cloudbaseApp.getTempFileURL({ fileList:fileIDs.map(fileID => ({ fileID, maxAge:7200 })) });
-        (result.fileList || []).forEach(file => { if (file.code === 'SUCCESS' && file.tempFileURL) imageUrlCache.set(file.fileID, file.tempFileURL); });
-        renderList();
+        let result = await cloudbaseApp.getTempFileURL({ fileList:fileIDs });
+        if (!(result.fileList || []).some(file => file.tempFileURL)) result = await cloudbaseApp.getTempFileURL({ fileList:fileIDs.map(fileID => ({ fileID, maxAge:7200 })) });
+        (result.fileList || []).forEach(file => { if (file.tempFileURL) imageUrlCache.set(file.fileID, file.tempFileURL); });
+        renderList(); updateImagePreview(false);
       } catch (error) { console.warn('获取 CloudBase 图片链接失败', error); }
     }
-    function updateImagePreview(){ imagePreview.innerHTML = currentImages.map((src, index) => `<img class="image-preview" src="${escapeHtml(imageSrc(src) || src)}" alt="第${index + 1}张预览图">`).join(''); removeImageBtn.style.display = currentImages.length ? 'inline-block' : 'none'; resolveCloudImageUrls(); }
+    function updateImagePreview(shouldResolve=true){ imagePreview.innerHTML = currentImages.map((src, index) => `<img class="image-preview" src="${escapeHtml(imageSrc(src) || src)}" alt="第${index + 1}张预览图">`).join(''); removeImageBtn.style.display = currentImages.length ? 'inline-block' : 'none'; if (shouldResolve) resolveCloudImageUrls(); }
     function openModal(item=null, defaultCategory=''){
       document.body.style.overflow='hidden'; modal.classList.add('show'); $('#modalTitle').textContent=item?'编辑物品':'新增物品';
       const selectedCategory = item?.category || defaultCategory || categories()[0] || '待产清单';
@@ -318,7 +320,7 @@
           const imageList = normalizeImages(item);
           const imageHtml = imageList.length ? `<div class="thumb-row">${imageList.map((src, index) => `<img class="thumb" src="${escapeHtml(imageSrc(src) || src)}" alt="${escapeHtml(item.name)}图片${index + 1}">`).join('')}</div>` : '';
           const priceHtml = formatAmount(item.amount) ? `<span class="item-price">${formatAmount(item.amount)}</span>` : '';
-          row.innerHTML=`<div class="item" data-action="open" data-id="${item.id}"><span class="item-content"><span class="item-main"><span><span class="item-title">${escapeHtml(item.name)}</span><span class="item-meta">${item.qty?`<strong>${escapeHtml(item.qty)}</strong>`:''}${item.qty&&item.note?' · ':''}${escapeHtml(item.note||'')}</span>${priceHtml}</span></span>${imageHtml}</span><input type="checkbox" ${item.done?'checked':''} data-action="toggle" data-id="${item.id}" aria-label="切换${escapeHtml(item.name)}完成状态"></div>`;
+          row.innerHTML=`<div class="item" data-action="open" data-id="${item.id}"><span class="item-content"><span class="item-main"><span class="item-title-row"><span class="item-title">${escapeHtml(item.name)}</span>${priceHtml}</span><span class="item-meta">${item.qty?`<strong>${escapeHtml(item.qty)}</strong>`:''}${item.qty&&item.note?' · ':''}${escapeHtml(item.note||'')}</span></span>${imageHtml}</span><input type="checkbox" ${item.done?'checked':''} data-action="toggle" data-id="${item.id}" aria-label="切换${escapeHtml(item.name)}完成状态"></div>`;
           box.appendChild(row);
         });
         listRoot.appendChild(section);
@@ -336,13 +338,12 @@
         const result = await cloudbaseApp.uploadFile({ cloudPath, filePath:file });
         return result.fileID;
       } catch (error) {
-        console.warn('上传 CloudBase 图片失败，改用本地压缩图片', error);
-        setSyncStatus('图片本地');
-        return fileToCompressedDataUrl(file);
+        console.warn('上传 CloudBase 图片失败', error);
+        throw error;
       }
     }
     $('#addTopBtn').addEventListener('click',()=>openModal()); $('#closeModalBtn').addEventListener('click',closeModal); $('#cancelBtn').addEventListener('click',closeModal); modal.addEventListener('click',e=>{ if(e.target===modal) closeModal(); }); searchInput.addEventListener('input',renderList); categoryFilter.addEventListener('change',renderList); statusFilter.addEventListener('change',renderList); categorySelect.addEventListener('change', e => { if(e.target.value === '__new__') { const name = prompt('请输入新分类名称'); if(name && name.trim()) { $('#itemCategory').value = name.trim(); const option = new Option(name.trim(), name.trim()); categorySelect.add(option, categorySelect.options.length - 1); categorySelect.value = name.trim(); } else { categorySelect.value = $('#itemCategory').value || categories()[0] || '__new__'; } } else { $('#itemCategory').value = e.target.value; } });
-    imageInput.addEventListener('change', async e => { const files=Array.from(e.target.files || []); if(!files.length) return; setSyncStatus(CLOUDBASE_ENV_ID ? '上传图片' : '处理图片'); const uploaded = await Promise.all(files.map(uploadImage)); currentImages = currentImages.concat(uploaded); updateImagePreview(); setSyncStatus(CLOUDBASE_ENV_ID ? '待保存' : '待配置'); }); removeImageBtn.addEventListener('click', () => { currentImages=[]; imageInput.value=''; updateImagePreview(); });
+    imageInput.addEventListener('change', async e => { const files=Array.from(e.target.files || []); if(!files.length) return; setSyncStatus(CLOUDBASE_ENV_ID ? '上传图片' : '处理图片'); try { const uploaded = await Promise.all(files.map(uploadImage)); currentImages = currentImages.concat(uploaded); updateImagePreview(); setSyncStatus(CLOUDBASE_ENV_ID ? '待保存' : '待配置'); } catch (error) { setSyncStatus(CLOUDBASE_ENV_ID ? cloudErrorStatus(error, '图片上传失败') : '处理失败'); } }); removeImageBtn.addEventListener('click', () => { currentImages=[]; imageInput.value=''; updateImagePreview(); });
     $('#categoryStats').addEventListener('click', e => { const btn=e.target.closest('[data-filter-category]'); if(!btn) return; categoryFilter.value=btn.dataset.filterCategory; renderList(); window.scrollTo({top:250, behavior:'smooth'}); });
     listRoot.addEventListener('click', e => {
       const actionNode = e.target.closest('[data-action]');
