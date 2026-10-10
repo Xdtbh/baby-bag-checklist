@@ -21,19 +21,22 @@
 checklist_items
 ```
 
-本项目会在集合中维护一个固定文档：
+每个清单物品会作为集合中的一个独立文档保存，文档 `_id` 等于物品的 `id`。
 
-```text
-shared
-```
-
-文档结构由网页首次打开时自动写入，大致如下：
+物品文档示例：
 
 ```json
 {
-  "items": [],
+  "id": "物品 ID，与文档 _id 相同",
+  "category": "妈妈部分",
+  "name": "吸奶器",
+  "qty": "",
+  "note": "",
+  "done": false,
+  "images": [],
+  "createdAt": 0,
   "updatedAt": 0,
-  "version": "cloudbase-v1"
+  "deleted": false
 }
 ```
 

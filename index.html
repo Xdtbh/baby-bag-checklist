@@ -197,8 +197,8 @@
       if (message.includes('not exist') || message.includes('404')) return '集合不存在';
       return fallback;
     }
-    function toCloudItem(item){ return { id:item.id, category:item.category, name:item.name, qty:item.qty || '', note:item.note || '', done:Boolean(item.done), images:normalizeImages(item), createdAt:item.createdAt || Date.now(), updatedAt:Date.now() }; }
-    function fromCloudItem(item){ return { id:item.id, category:item.category, name:item.name, qty:item.qty || '', note:item.note || '', done:Boolean(item.done), images:normalizeImages(item), createdAt:item.createdAt || Date.now() }; }
+    function toCloudItem(item){ return { id:item.id, category:item.category, name:item.name, qty:item.qty || '', note:item.note || '', done:Boolean(item.done), images:normalizeImages(item), createdAt:item.createdAt || Date.now(), updatedAt:Date.now(), deleted:false }; }
+    function fromCloudItem(item){ return { id:item.id || item._id, category:item.category, name:item.name, qty:item.qty || '', note:item.note || '', done:Boolean(item.done), images:normalizeImages(item), createdAt:item.createdAt || Date.now(), updatedAt:item.updatedAt || 0 }; }
     function loadCloudbaseSdk(){
       if (window.cloudbase) return Promise.resolve();
       if (!cloudbaseSdkPromise) {
@@ -231,19 +231,28 @@
     }
     async function fetchCloudItems(){
       const db = await ensureCloudbase();
+      const collection = db.collection(STATE_COLLECTION);
+      let docs = [];
       try {
-        const result = await db.collection(STATE_COLLECTION).doc(STATE_DOC_ID).get();
-        const doc = Array.isArray(result.data) ? result.data[0] : result.data;
-        return Array.isArray(doc?.items) ? doc.items.map(fromCloudItem) : [];
+        const result = await collection.limit(1000).get();
+        docs = Array.isArray(result.data) ? result.data : [];
       } catch (error) {
         const message = String(error?.message || error || '');
-        if (error?.code === 'DOCUMENT_NOT_FOUND' || message.includes('Document not found')) return [];
-        throw error;
+        if (!(error?.code === 'DOCUMENT_NOT_FOUND' || message.includes('Document not found'))) throw error;
       }
+      const itemDocs = docs.filter(doc => doc && doc._id !== STATE_DOC_ID && !Array.isArray(doc.items) && !doc.deleted);
+      if (itemDocs.length) return itemDocs.map(fromCloudItem).filter(item => item.id && item.name);
+      const legacyDoc = docs.find(doc => doc && (doc._id === STATE_DOC_ID || Array.isArray(doc.items)));
+      return Array.isArray(legacyDoc?.items) ? legacyDoc.items.map(fromCloudItem).filter(item => item.id && item.name) : [];
     }
     async function saveCloudItems(nextItems){
       const db = await ensureCloudbase();
-      await db.collection(STATE_COLLECTION).doc(STATE_DOC_ID).set({ data:{ items:nextItems.map(toCloudItem), updatedAt:Date.now(), version:'cloudbase-v1' } });
+      const collection = db.collection(STATE_COLLECTION);
+      const nextIds = new Set(nextItems.map(item => item.id));
+      const existing = await fetchCloudItems().catch(() => []);
+      await Promise.all(nextItems.map(item => collection.doc(item.id).set({ data:toCloudItem(item) })));
+      await Promise.all(existing.filter(item => item.id && !nextIds.has(item.id)).map(item => collection.doc(item.id).remove().catch(() => null)));
+      await collection.doc(STATE_DOC_ID).remove().catch(() => null);
     }
     async function loadFromCloud(){
       setSyncStatus('同步中');
@@ -259,7 +268,7 @@
       try {
         const cloudItems = await fetchCloudItems();
         const nextSnapshot = JSON.stringify(cloudItems);
-        if (cloudItems.length && nextSnapshot !== JSON.stringify(items)) { items = cloudItems; localStorage.setItem(STORAGE_KEY, nextSnapshot); setSyncStatus('已更新'); renderList(); }
+        if (nextSnapshot !== JSON.stringify(items)) { items = cloudItems; localStorage.setItem(STORAGE_KEY, nextSnapshot); setSyncStatus('已更新'); renderList(); }
       } catch (error) { console.warn('刷新 CloudBase 清单失败', error); }
     }
     function saveItems(){
