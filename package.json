@@ -2,5 +2,10 @@
   "scripts": {
     "build": "node build-config.js"
   },
-  "dependencies": {}
+  "dependencies": {
+    "@cloudbase/js-sdk": "^3.10.1"
+  },
+  "devDependencies": {
+    "esbuild": "^0.28.2"
+  }
 }

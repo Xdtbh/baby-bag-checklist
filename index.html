@@ -163,7 +163,7 @@
   <script>
     const CLOUDBASE_ENV_ID = window.CLOUDBASE_ENV_ID || '';
     const CLOUDBASE_REGION = window.CLOUDBASE_REGION || 'ap-shanghai';
-    const CLOUDBASE_SDK_URL = 'https://static.cloudbase.net/cloudbase-js-sdk/2.0.0/cloudbase.full.js';
+    const CLOUDBASE_SDK_URL = './vendor/cloudbase.full.js';
     const STATE_COLLECTION = window.CLOUDBASE_COLLECTION || 'checklist_items';
     const STATE_DOC_ID = 'shared';
     const STORAGE_KEY = 'baby-bag-checklist-cloudbase-cache-v1';
@@ -189,6 +189,14 @@
     const listRoot = $('#listRoot'), emptyState = $('#emptyState'), searchInput = $('#searchInput'), categoryFilter = $('#categoryFilter'), statusFilter = $('#statusFilter'), modal = $('#itemModal'), itemForm = $('#itemForm'), imageInput = $('#itemImage'), imagePreview = $('#imagePreview'), removeImageBtn = $('#removeImageBtn'), categorySelect = $('#categorySelect');
     function loadItems(){ try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || initialItems; } catch { return initialItems; } }
     function setSyncStatus(text){ const node = $('#syncStatus'); if (node) node.textContent = text; }
+    function cloudErrorStatus(error, fallback='保存失败'){
+      const message = String(error?.message || error || '');
+      if (message.includes('anonymous authentication is disabled')) return '匿名未开';
+      if (message.includes('INVALID_OPERATION')) return '认证失败';
+      if (message.includes('permission') || message.includes('PERMISSION') || message.includes('403')) return '权限不足';
+      if (message.includes('not exist') || message.includes('404')) return '集合不存在';
+      return fallback;
+    }
     function toCloudItem(item){ return { id:item.id, category:item.category, name:item.name, qty:item.qty || '', note:item.note || '', done:Boolean(item.done), images:normalizeImages(item), createdAt:item.createdAt || Date.now(), updatedAt:Date.now() }; }
     function fromCloudItem(item){ return { id:item.id, category:item.category, name:item.name, qty:item.qty || '', note:item.note || '', done:Boolean(item.done), images:normalizeImages(item), createdAt:item.createdAt || Date.now() }; }
     function loadCloudbaseSdk(){
@@ -223,9 +231,15 @@
     }
     async function fetchCloudItems(){
       const db = await ensureCloudbase();
-      const result = await db.collection(STATE_COLLECTION).doc(STATE_DOC_ID).get();
-      const doc = Array.isArray(result.data) ? result.data[0] : result.data;
-      return Array.isArray(doc?.items) ? doc.items.map(fromCloudItem) : [];
+      try {
+        const result = await db.collection(STATE_COLLECTION).doc(STATE_DOC_ID).get();
+        const doc = Array.isArray(result.data) ? result.data[0] : result.data;
+        return Array.isArray(doc?.items) ? doc.items.map(fromCloudItem) : [];
+      } catch (error) {
+        const message = String(error?.message || error || '');
+        if (error?.code === 'DOCUMENT_NOT_FOUND' || message.includes('Document not found')) return [];
+        throw error;
+      }
     }
     async function saveCloudItems(nextItems){
       const db = await ensureCloudbase();
@@ -238,7 +252,7 @@
         if (!cloudItems.length) { items = initialItems; await saveCloudItems(items); }
         else { items = cloudItems; }
         localStorage.setItem(STORAGE_KEY, JSON.stringify(items)); setSyncStatus('已同步');
-      } catch (error) { console.warn('读取 CloudBase 清单失败，暂用本地缓存', error); items = loadItems(); setSyncStatus(CLOUDBASE_ENV_ID ? '离线缓存' : '待配置'); }
+      } catch (error) { console.warn('读取 CloudBase 清单失败，暂用本地缓存', error); items = loadItems(); setSyncStatus(CLOUDBASE_ENV_ID ? cloudErrorStatus(error, '离线缓存') : '待配置'); }
       renderList();
     }
     async function refreshFromCloud(){
@@ -250,12 +264,12 @@
     }
     function saveItems(){
       localStorage.setItem(STORAGE_KEY, JSON.stringify(items)); setSyncStatus('保存中'); clearTimeout(saveTimer);
-      saveTimer = setTimeout(async () => { try { await saveCloudItems(items); setSyncStatus('已同步'); } catch (error) { console.warn('保存 CloudBase 清单失败', error); setSyncStatus(CLOUDBASE_ENV_ID ? '保存失败' : '待配置'); } }, 250);
+      saveTimer = setTimeout(async () => { try { await saveCloudItems(items); setSyncStatus('已同步'); } catch (error) { console.warn('保存 CloudBase 清单失败', error); setSyncStatus(CLOUDBASE_ENV_ID ? cloudErrorStatus(error, '保存失败') : '待配置'); } }, 250);
     }
     async function resetCloud(){
       setSyncStatus('恢复中'); items = initialItems; localStorage.setItem(STORAGE_KEY, JSON.stringify(items)); renderList();
       try { await saveCloudItems(items); setSyncStatus('已同步'); }
-      catch (error) { console.warn('恢复 CloudBase 清单失败', error); setSyncStatus(CLOUDBASE_ENV_ID ? '保存失败' : '待配置'); }
+      catch (error) { console.warn('恢复 CloudBase 清单失败', error); setSyncStatus(CLOUDBASE_ENV_ID ? cloudErrorStatus(error, '保存失败') : '待配置'); }
     }
     function categories(){ return [...new Set(items.map(i => i.category).filter(Boolean))]; }
     function escapeHtml(str=''){ return String(str).replace(/[&<>'"]/g, tag => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[tag])); }
